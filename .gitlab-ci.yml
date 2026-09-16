@@ -1,0 +1,13 @@
+# GitLab Pages: statik site, derleme adımı yok.
+# Varsayılan dala (main) her push'ta index.html yayına alınır.
+pages:
+  stage: deploy
+  image: alpine:3.20
+  script:
+    - mkdir -p public
+    - cp index.html public/
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

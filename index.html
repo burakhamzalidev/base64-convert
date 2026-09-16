@@ -1,0 +1,1104 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Base64 verisini HTML, Word (.docx) veya kaynak dosyaya dönüştürür. Tüm işlem tarayıcıda yapılır, veri hiçbir sunucuya gönderilmez.">
+<meta name="theme-color" content="#2f6feb">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232f6feb'/%3E%3Ctext x='32' y='42' font-family='Segoe UI,Arial,sans-serif' font-size='24' font-weight='700' text-anchor='middle' fill='white'%3EB64%3C/text%3E%3C/svg%3E">
+<title>Base64 → HTML / Word Dönüştürücü</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#ffffff; --border:#dfe3e8; --text:#1b1f24; --muted:#666e78;
+    --accent:#2f6feb; --accent-fg:#ffffff; --word:#185abd; --ok:#177245; --err:#b3261e; --code:#f0f2f5;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#14171a; --panel:#1c2024; --border:#2e343b; --text:#e6e8ea; --muted:#98a1ab;
+      --accent:#4f8cff; --accent-fg:#0b0e11; --word:#4f8cff; --ok:#4ade80; --err:#ff6b63; --code:#22272c;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
+  header{padding:20px 24px 8px}
+  h1{margin:0;font-size:20px}
+  header p{margin:6px 0 0;color:var(--muted);font-size:13px;max-width:82ch}
+  main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 24px 24px}
+  @media (max-width:900px){main{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+         display:flex;flex-direction:column;min-height:460px;overflow:hidden}
+  .panel h2{margin:0;padding:12px 14px;font-size:12px;font-weight:600;color:var(--muted);
+            border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.06em}
+  textarea{flex:1;border:0;outline:0;resize:none;padding:14px;background:transparent;color:var(--text);
+           font:13px/1.45 Consolas,"Cascadia Mono",monospace;white-space:pre-wrap;word-break:break-all}
+  .drop{outline:2px dashed var(--accent);outline-offset:-6px}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--border)}
+  button{font:inherit;font-size:13px;padding:7px 14px;border-radius:7px;border:1px solid var(--border);
+         background:var(--panel);color:var(--text);cursor:pointer}
+  button:hover:not(:disabled){border-color:var(--accent)}
+  button:disabled{opacity:.4;cursor:default}
+  button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+  button.word{background:var(--word);border-color:var(--word);color:#fff;font-weight:600}
+  button.word:disabled{background:var(--panel);border-color:var(--border);color:var(--text)}
+  label.file{font-size:13px;padding:7px 14px;border:1px solid var(--border);border-radius:7px;cursor:pointer}
+  label.file:hover{border-color:var(--accent)}
+  input[type=file]{display:none}
+  .status{padding:8px 14px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--border);
+          min-height:34px;display:flex;align-items:center}
+  .status.ok{color:var(--ok)} .status.err{color:var(--err)}
+  .tabs{display:flex;gap:4px;padding:8px 14px 0}
+  .tabs button{border-radius:7px 7px 0 0}
+  .tabs button[aria-selected=true]{background:var(--code);border-color:var(--border);font-weight:600}
+  .view{flex:1;position:relative;background:var(--code)}
+  iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
+  pre.out{position:absolute;inset:0;margin:0;overflow:auto;padding:14px;
+          font:12.5px/1.5 Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+  .hidden{display:none !important}
+  .opts{display:flex;gap:16px;align-items:center;padding:0 14px 10px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+  .opts label{display:flex;gap:6px;align-items:center;cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <h1>Base64 → HTML / Word Dönüştürücü</h1>
+  <p>Base64 metnini yapıştır veya dosya sürükle. İçerik otomatik algılanır — HTML, düz metin, resim, PDF,
+     <strong>Word (.docx)</strong>, Excel, PowerPoint, ZIP — önizlenir ve
+     <strong>.html</strong>, <strong>.docx</strong> ya da kaynak dosya olarak kaydedilir.</p>
+</header>
+
+<main>
+  <section class="panel" id="inPanel">
+    <h2>Base64 girdi</h2>
+    <textarea id="input" spellcheck="false" placeholder="PGgxPk1lcmhhYmE8L2gxPg==&#10;&#10;veya:  data:image/png;base64,iVBORw0KGgo...&#10;&#10;Buraya .txt / .b64 dosyası da sürükleyebilirsin."></textarea>
+    <div class="opts">
+      <label><input type="checkbox" id="optWrap" checked> Metin/resim için HTML şablonuna sar</label>
+      <label><input type="checkbox" id="optUrlSafe" checked> URL-safe base64 (-_) kabul et</label>
+    </div>
+    <div class="bar">
+      <button class="primary" id="btnConvert">Dönüştür</button>
+      <label class="file">Dosya seç<input type="file" id="fileIn"></label>
+      <button id="btnPaste">Panodan yapıştır</button>
+      <button id="btnSample">Örnek</button>
+      <button id="btnClear">Temizle</button>
+    </div>
+    <div class="status" id="status">Hazır. (Ctrl+Enter ile de dönüştürebilirsin.)</div>
+  </section>
+
+  <section class="panel">
+    <h2>Sonuç</h2>
+    <div class="tabs">
+      <button id="tabPreview" aria-selected="true">Önizleme</button>
+      <button id="tabCode" aria-selected="false">HTML kaynağı</button>
+    </div>
+    <div class="view">
+      <iframe id="preview" title="Önizleme" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>
+      <pre class="out hidden" id="code"></pre>
+    </div>
+    <div class="bar">
+      <button class="primary" id="btnSave" disabled>.html kaydet</button>
+      <button class="word" id="btnWord" disabled>Word (.docx) kaydet</button>
+      <button id="btnRaw" disabled>Kaynak dosya</button>
+      <button id="btnCopy" disabled>HTML'i kopyala</button>
+      <button id="btnOpen" disabled>Yeni sekmede aç</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var input = $("input"), statusEl = $("status"), preview = $("preview"), codeEl = $("code");
+  var result = null;   // { html, kind, size, text, word }
+
+  function setStatus(msg, cls){
+    statusEl.textContent = msg;
+    statusEl.className = "status" + (cls ? " " + cls : "");
+  }
+
+  function esc(s){
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  /* ================= base64 çözme ================= */
+
+  /* data: URI öneki, boşluklar, URL-safe alfabe ve eksik padding temizlenir */
+  function normalize(raw){
+    var s = raw.trim();
+    var mime = null;
+    var m = s.match(/^data:([^;,]*)(;[^,]*)*,/i);
+    if (m){ mime = m[1] || null; s = s.slice(m[0].length); }
+    s = s.replace(/\s+/g, "");
+    if ($("optUrlSafe").checked) s = s.replace(/-/g, "+").replace(/_/g, "/");
+    s = s.replace(/=+$/, "");
+    if (!s) throw new Error("Girdi boş.");
+    if (!/^[A-Za-z0-9+/]*$/.test(s)) throw new Error("Girdide base64 olmayan karakterler var.");
+    var pad = s.length % 4;
+    if (pad === 1) throw new Error("Base64 uzunluğu geçersiz (eksik ya da fazla karakter var).");
+    if (pad) s += new Array(5 - pad).join("=");
+    return { b64: s, mime: mime };
+  }
+
+  function toBytes(b64){
+    var bin;
+    try { bin = atob(b64); }
+    catch(e){ throw new Error("Base64 çözülemedi: bozuk veri."); }
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  /* imza (magic bytes) ile tür tespiti */
+  function sniff(b){
+    var at = function(i, arr){
+      for (var k = 0; k < arr.length; k++) if (b[i + k] !== arr[k]) return false;
+      return true;
+    };
+    if (at(0, [0x89,0x50,0x4E,0x47])) return "image/png";
+    if (at(0, [0xFF,0xD8,0xFF]))      return "image/jpeg";
+    if (at(0, [0x47,0x49,0x46,0x38])) return "image/gif";
+    if (at(0, [0x25,0x50,0x44,0x46])) return "application/pdf";
+    if (at(0, [0x52,0x49,0x46,0x46]) && at(8, [0x57,0x45,0x42,0x50])) return "image/webp";
+    if (at(0, [0x00,0x00,0x01,0x00])) return "image/x-icon";
+    if (at(0, [0x50,0x4B,0x03,0x04])) return "application/zip";
+    return null;
+  }
+
+  function decodeText(bytes){
+    try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+    catch(e){ return null; }   // geçerli UTF-8 değil => ikili veri
+  }
+
+  function looksLikeHtml(t){
+    return /<!doctype\s+html|<html[\s>]|<body[\s>]|<(div|p|h[1-6]|table|span|img|a|ul|ol|section|article)\b[^>]*>/i.test(t);
+  }
+
+  function wrap(title, body){
+    return '<!doctype html>\n<html lang="tr">\n<head>\n<meta charset="utf-8">\n'
+      + '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+      + '<title>' + esc(title) + '</title>\n'
+      + '<style>body{margin:0;padding:24px;background:#fff;color:#111;'
+      + 'font:15px/1.6 "Segoe UI",system-ui,sans-serif}'
+      + 'img{max-width:100%;height:auto}p{margin:0 0 10px}p.liste{margin-left:26px}'
+      + 'table{border-collapse:collapse;margin:12px 0}'
+      + 'td,th{border:1px solid #ccc;padding:6px 10px;vertical-align:top}'
+      + 'pre{white-space:pre-wrap;word-break:break-word;background:#f4f5f7;'
+      + 'padding:16px;border-radius:8px;font:13px/1.5 Consolas,monospace}'
+      + 'embed{width:100%;height:90vh;border:1px solid #ddd;border-radius:8px}</style>\n'
+      + '</head>\n<body>\n' + body + '\n</body>\n</html>\n';
+  }
+
+  /* ================= ZIP yazıcı (docx paketi için) ================= */
+
+  var crcTable = (function(){
+    var t = new Uint32Array(256);
+    for (var n = 0; n < 256; n++){
+      var c = n;
+      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+
+  function crc32(u8){
+    var c = 0xFFFFFFFF;
+    for (var i = 0; i < u8.length; i++) c = crcTable[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function utf8(s){ return new TextEncoder().encode(s); }
+
+  /* Sıkıştırmasız (store) ZIP — docx için yeterli ve kütüphanesiz */
+  function makeZip(entries, mimeType){
+    var d = new Date();
+    var dosTime = ((d.getHours() & 31) << 11) | ((d.getMinutes() & 63) << 5) | (Math.floor(d.getSeconds() / 2) & 31);
+    var dosDate = (((d.getFullYear() - 1980) & 127) << 9) | (((d.getMonth() + 1) & 15) << 5) | (d.getDate() & 31);
+    var local = [], central = [], offset = 0;
+
+    entries.forEach(function(f){
+      var name = utf8(f.name), data = f.data, crc = crc32(data);
+
+      var lh = new Uint8Array(30 + name.length), lv = new DataView(lh.buffer);
+      lv.setUint32(0, 0x04034b50, true);
+      lv.setUint16(4, 20, true);          // sürüm
+      lv.setUint16(6, 0x0800, true);      // UTF-8 ad bayrağı
+      lv.setUint16(8, 0, true);           // yöntem: store
+      lv.setUint16(10, dosTime, true); lv.setUint16(12, dosDate, true);
+      lv.setUint32(14, crc, true);
+      lv.setUint32(18, data.length, true); lv.setUint32(22, data.length, true);
+      lv.setUint16(26, name.length, true); lv.setUint16(28, 0, true);
+      lh.set(name, 30);
+      local.push(lh, data);
+
+      var ch = new Uint8Array(46 + name.length), cv = new DataView(ch.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true); cv.setUint16(6, 20, true);
+      cv.setUint16(8, 0x0800, true); cv.setUint16(10, 0, true);
+      cv.setUint16(12, dosTime, true); cv.setUint16(14, dosDate, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, data.length, true); cv.setUint32(24, data.length, true);
+      cv.setUint16(28, name.length, true);
+      cv.setUint16(30, 0, true); cv.setUint16(32, 0, true);
+      cv.setUint16(34, 0, true); cv.setUint16(36, 0, true);
+      cv.setUint32(38, 0, true); cv.setUint32(42, offset, true);
+      ch.set(name, 46);
+      central.push(ch);
+
+      offset += lh.length + data.length;
+    });
+
+    var cdSize = central.reduce(function(a, b){ return a + b.length; }, 0);
+    var eo = new Uint8Array(22), ev = new DataView(eo.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(4, 0, true); ev.setUint16(6, 0, true);
+    ev.setUint16(8, entries.length, true); ev.setUint16(10, entries.length, true);
+    ev.setUint32(12, cdSize, true); ev.setUint32(16, offset, true);
+    ev.setUint16(20, 0, true);
+
+    return new Blob(local.concat(central, [eo]), { type: mimeType });
+  }
+
+  /* ================= HTML → DOCX ================= */
+
+  var NS = {
+    w:   "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+    r:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+    wp:  "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing",
+    a:   "http://schemas.openxmlformats.org/drawingml/2006/main",
+    pic: "http://schemas.openxmlformats.org/drawingml/2006/picture"
+  };
+  var BLOCK = /^(address|article|aside|blockquote|div|dl|dd|dt|fieldset|figure|figcaption|footer|form|h[1-6]|header|hr|li|main|nav|ol|p|pre|section|table|tbody|thead|tfoot|tr|ul)$/;
+  var SKIP  = /^(script|style|head|meta|link|title|noscript|template|iframe|embed|object|svg)$/;
+  var MAX_CX = 5943600;   // ~6,5 inç, A4 yazı alanına sığar
+
+  function xesc(s){
+    s = String(s);
+    var out = "";
+    for (var i = 0; i < s.length; i++){
+      var c = s.charCodeAt(i);
+      if (c < 32 && c !== 9 && c !== 10 && c !== 13) continue;   // XML'de yasak kontrol karakterleri
+      out += s.charAt(i);
+    }
+    return out.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  /* PNG / JPEG / GIF piksel boyutu */
+  function imgSize(b, mime){
+    try {
+      var dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+      if (mime === "image/png") return { w: dv.getUint32(16), h: dv.getUint32(20) };
+      if (mime === "image/gif") return { w: dv.getUint16(6, true), h: dv.getUint16(8, true) };
+      if (mime === "image/jpeg"){
+        var i = 2;
+        while (i < b.length - 8){
+          if (b[i] !== 0xFF){ i++; continue; }
+          var mk = b[i + 1];
+          if (mk === 0xD8 || mk === 0x01 || (mk >= 0xD0 && mk <= 0xD7)){ i += 2; continue; }
+          if (mk >= 0xC0 && mk <= 0xCF && mk !== 0xC4 && mk !== 0xC8 && mk !== 0xCC)
+            return { h: dv.getUint16(i + 5), w: dv.getUint16(i + 7) };
+          i += 2 + dv.getUint16(i + 2);
+        }
+      }
+    } catch(e){}
+    return { w: 480, h: 360 };
+  }
+
+  function htmlToDocx(html, plainText){
+    var blocks = [], rels = [], media = [];
+    var relSeq = 1, imgSeq = 0, drawId = 1;   // rId1 = styles.xml
+
+    function addRel(type, target, external){
+      var id = "rId" + (++relSeq);
+      rels.push({ id: id, type: type, target: target, external: !!external });
+      return id;
+    }
+
+    /* --- run / paragraf --- */
+    function runXml(text, c){
+      if (text === "" || text == null) return "";
+      c = c || {};
+      var p = "";
+      if (c.link)   p += '<w:rStyle w:val="Hyperlink"/>';
+      if (c.code)   p += '<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>';
+      if (c.b)      p += "<w:b/>";
+      if (c.i)      p += "<w:i/>";
+      if (c.strike) p += "<w:strike/>";
+      if (c.code)   p += '<w:sz w:val="20"/>';
+      if (c.u)      p += '<w:u w:val="single"/>';
+
+      var lines = String(text).split("\n"), body = "";
+      for (var i = 0; i < lines.length; i++){
+        if (i) body += "<w:br/>";
+        if (lines[i] !== "") body += '<w:t xml:space="preserve">' + xesc(lines[i]) + "</w:t>";
+      }
+      if (!body) return "";
+      return "<w:r>" + (p ? "<w:rPr>" + p + "</w:rPr>" : "") + body + "</w:r>";
+    }
+
+    function para(runs, o){
+      o = o || {};
+      var pr = "";
+      if (o.style)  pr += '<w:pStyle w:val="' + o.style + '"/>';
+      if (o.rule)   pr += '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="BFBFBF"/></w:pBdr>';
+      if (o.indent) pr += '<w:ind w:left="' + (o.indent * 340) + '"/>';
+      return "<w:p>" + (pr ? "<w:pPr>" + pr + "</w:pPr>" : "") + runs.join("") + "</w:p>";
+    }
+
+    /* --- görsel --- */
+    function imageRun(el){
+      var src = el.getAttribute("src") || "";
+      var m = src.match(/^data:(image\/[a-z+]+);base64,([\s\S]+)$/i);
+      if (!m) return runXml("[görsel: " + (src.slice(0, 70) || "kaynak yok") + "]", { i: true });
+
+      var mime = m[1].toLowerCase();
+      if (mime === "image/jpg") mime = "image/jpeg";
+      if (mime !== "image/png" && mime !== "image/jpeg" && mime !== "image/gif")
+        return runXml("[Word'e gömülemeyen görsel türü: " + mime + "]", { i: true });
+
+      var bytes;
+      try { bytes = toBytes(m[2].replace(/\s+/g, "")); }
+      catch(e){ return runXml("[görsel çözülemedi]", { i: true }); }
+
+      var ext = mime === "image/png" ? "png" : (mime === "image/gif" ? "gif" : "jpeg");
+      var name = "image" + (++imgSeq) + "." + ext;
+      media.push({ name: "word/media/" + name, data: bytes });
+      var rid = addRel("image", "media/" + name);
+
+      var s = imgSize(bytes, mime);
+      var cx = Math.max(1, Math.round(s.w * 9525)), cy = Math.max(1, Math.round(s.h * 9525));
+      if (cx > MAX_CX){ cy = Math.round(cy * MAX_CX / cx); cx = MAX_CX; }
+      var id = drawId++;
+
+      return '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">'
+        + '<wp:extent cx="' + cx + '" cy="' + cy + '"/>'
+        + '<wp:effectExtent l="0" t="0" r="0" b="0"/>'
+        + '<wp:docPr id="' + id + '" name="Resim ' + id + '"/>'
+        + '<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="' + NS.a + '" noChangeAspect="1"/></wp:cNvGraphicFramePr>'
+        + '<a:graphic xmlns:a="' + NS.a + '"><a:graphicData uri="' + NS.pic + '">'
+        + '<pic:pic xmlns:pic="' + NS.pic + '">'
+        + '<pic:nvPicPr><pic:cNvPr id="' + id + '" name="' + name + '"/><pic:cNvPicPr/></pic:nvPicPr>'
+        + '<pic:blipFill><a:blip r:embed="' + rid + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+        + '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm>'
+        + '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
+        + "</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>";
+    }
+
+    /* --- satır içi içerik --- */
+    function inlineRuns(node, ctx, out, keepSpace){
+      Array.prototype.forEach.call(node.childNodes, function(n){
+        if (n.nodeType === 3){
+          var t = keepSpace ? n.nodeValue : n.nodeValue.replace(/\s+/g, " ");
+          if (t && (keepSpace || t.trim() || out.length)) out.push(runXml(t, ctx));
+          return;
+        }
+        if (n.nodeType !== 1) return;
+        var tag = n.tagName.toLowerCase();
+        if (SKIP.test(tag)) return;
+        if (tag === "br"){ out.push("<w:r><w:br/></w:r>"); return; }
+        if (tag === "img"){ out.push(imageRun(n)); return; }
+
+        var c = {};
+        for (var k in ctx) c[k] = ctx[k];
+        if (tag === "b" || tag === "strong") c.b = true;
+        if (tag === "i" || tag === "em")     c.i = true;
+        if (tag === "u" || tag === "ins")    c.u = true;
+        if (tag === "s" || tag === "strike" || tag === "del") c.strike = true;
+        if (tag === "code" || tag === "kbd" || tag === "samp" || tag === "tt") c.code = true;
+
+        var href = tag === "a" ? n.getAttribute("href") : null;
+        if (href && !/^javascript:/i.test(href)){
+          var sub = [];
+          c.link = true;
+          inlineRuns(n, c, sub, keepSpace);
+          if (sub.length){
+            out.push('<w:hyperlink r:id="' + addRel("hyperlink", href, true) + '">' + sub.join("") + "</w:hyperlink>");
+            return;
+          }
+        }
+        inlineRuns(n, c, out, keepSpace);
+      });
+    }
+
+    function leafPara(el, o){
+      var runs = [];
+      inlineRuns(el, o && o.ctx ? o.ctx : {}, runs, !!(o && o.keepSpace));
+      if (runs.length) blocks.push(para(runs, o || {}));
+    }
+
+    /* --- tablo --- */
+    function tableXml(tbl){
+      var xml = '<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders>'
+        + ["top","left","bottom","right","insideH","insideV"].map(function(s){
+            return "<w:" + s + ' w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>';
+          }).join("")
+        + "</w:tblBorders></w:tblPr>";
+      var rows = tbl.querySelectorAll("tr"), any = false;
+      Array.prototype.forEach.call(rows, function(tr){
+        var cells = "";
+        Array.prototype.forEach.call(tr.children, function(cell){
+          var tag = cell.tagName.toLowerCase();
+          if (tag !== "td" && tag !== "th") return;
+          var runs = [];
+          inlineRuns(cell, { b: tag === "th" }, runs, false);
+          cells += '<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/></w:tcPr>' + para(runs, {}) + "</w:tc>";
+        });
+        if (cells){ xml += "<w:tr>" + cells + "</w:tr>"; any = true; }
+      });
+      return any ? xml + "</w:tbl>" + para([], {}) : "";
+    }
+
+    /* --- liste --- */
+    function listItem(li, indent, prefix){
+      var runs = [runXml(prefix, {})];
+      Array.prototype.forEach.call(li.childNodes, function(n){
+        if (n.nodeType === 1 && /^(ul|ol)$/i.test(n.tagName)) return;
+        if (n.nodeType === 3){
+          var t = n.nodeValue.replace(/\s+/g, " ");
+          if (t.trim() || runs.length > 1) runs.push(runXml(t, {}));
+          return;
+        }
+        if (n.nodeType === 1) inlineRuns(n, {}, runs, false);
+      });
+      if (runs.length > 1) blocks.push(para(runs, { indent: indent }));
+      Array.prototype.forEach.call(li.children, function(c){
+        if (/^(ul|ol)$/i.test(c.tagName)) processList(c, indent + 1);
+      });
+    }
+
+    function processList(el, indent){
+      var ordered = el.tagName.toLowerCase() === "ol", idx = 1;
+      Array.prototype.forEach.call(el.children, function(li){
+        if (li.tagName.toLowerCase() !== "li") return;
+        listItem(li, indent, ordered ? (idx++) + ". " : "• ");
+      });
+    }
+
+    /* --- blok gezintisi --- */
+    function hasBlockChild(el){
+      for (var i = 0; i < el.children.length; i++)
+        if (BLOCK.test(el.children[i].tagName.toLowerCase())) return true;
+      return false;
+    }
+
+    function walk(parent, indent){
+      Array.prototype.forEach.call(parent.childNodes, function(n){
+        if (n.nodeType === 3){
+          var t = n.nodeValue.replace(/\s+/g, " ");
+          if (t.trim()) blocks.push(para([runXml(t, {})], { indent: indent }));
+          return;
+        }
+        if (n.nodeType !== 1) return;
+
+        var tag = n.tagName.toLowerCase();
+        if (SKIP.test(tag)) return;
+
+        if (tag === "hr"){ blocks.push(para([], { rule: true })); return; }
+        if (tag === "table"){ var t2 = tableXml(n); if (t2) blocks.push(t2); return; }
+        if (tag === "ul" || tag === "ol"){ processList(n, indent + 1); return; }
+        if (tag === "pre"){
+          blocks.push(para([runXml(n.textContent, { code: true })], { style: "Kod", indent: indent }));
+          return;
+        }
+        if (/^h[1-6]$/.test(tag)){ leafPara(n, { style: "Heading" + tag.charAt(1) }); return; }
+        if (tag === "blockquote"){ walk(n, indent + 1); return; }
+        if (tag === "img"){ blocks.push(para([imageRun(n)], { indent: indent })); return; }
+
+        if (BLOCK.test(tag)){
+          if (hasBlockChild(n)) walk(n, indent);
+          else leafPara(n, { indent: indent });
+          return;
+        }
+        // satır içi eleman doğrudan gövdede
+        leafPara(n, { indent: indent });
+      });
+    }
+
+    /* --- içerik --- */
+    if (typeof plainText === "string"){
+      plainText.split("\n").forEach(function(line){
+        blocks.push(para(line ? [runXml(line, {})] : [], {}));
+      });
+    } else {
+      var dom = new DOMParser().parseFromString(html, "text/html");
+      walk(dom.body, 0);
+    }
+    if (!blocks.length) blocks.push(para([runXml("(boş içerik)", { i: true })], {}));
+
+    /* --- paket --- */
+    var documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+      + '<w:document xmlns:w="' + NS.w + '" xmlns:r="' + NS.r + '" xmlns:wp="' + NS.wp + '">'
+      + "<w:body>" + blocks.join("")
+      + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
+      + '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/>'
+      + "</w:sectPr></w:body></w:document>";
+
+    function heading(id, name, size, lvl){
+      return '<w:style w:type="paragraph" w:styleId="' + id + '"><w:name w:val="' + name + '"/>'
+        + '<w:basedOn w:val="Normal"/><w:qFormat/>'
+        + '<w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120"/><w:outlineLvl w:val="' + lvl + '"/></w:pPr>'
+        + '<w:rPr><w:b/><w:color w:val="1F3864"/><w:sz w:val="' + size + '"/></w:rPr></w:style>';
+    }
+
+    var stylesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+      + '<w:styles xmlns:w="' + NS.w + '">'
+      + "<w:docDefaults><w:rPrDefault><w:rPr>"
+      + '<w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="22"/><w:szCs w:val="22"/>'
+      + '<w:lang w:val="tr-TR"/></w:rPr></w:rPrDefault>'
+      + '<w:pPrDefault><w:pPr><w:spacing w:after="140" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault>'
+      + "</w:docDefaults>"
+      + '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>'
+      + heading("Heading1", "heading 1", 40, 0) + heading("Heading2", "heading 2", 32, 1)
+      + heading("Heading3", "heading 3", 28, 2) + heading("Heading4", "heading 4", 24, 3)
+      + heading("Heading5", "heading 5", 22, 4) + heading("Heading6", "heading 6", 20, 5)
+      + '<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/>'
+      + '<w:rPr><w:color w:val="0563C1"/><w:u w:val="single"/></w:rPr></w:style>'
+      + '<w:style w:type="paragraph" w:styleId="Kod"><w:name w:val="Kod"/><w:basedOn w:val="Normal"/>'
+      + '<w:pPr><w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/><w:spacing w:after="140"/></w:pPr>'
+      + '<w:rPr><w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/><w:sz w:val="20"/></w:rPr></w:style>'
+      + "</w:styles>";
+
+    var relTypes = {
+      image:     NS.r + "/image",
+      hyperlink: NS.r + "/hyperlink"
+    };
+    var docRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+      + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+      + '<Relationship Id="rId1" Type="' + NS.r + '/styles" Target="styles.xml"/>'
+      + rels.map(function(x){
+          return '<Relationship Id="' + x.id + '" Type="' + relTypes[x.type] + '" Target="' + xesc(x.target) + '"'
+               + (x.external ? ' TargetMode="External"' : "") + "/>";
+        }).join("")
+      + "</Relationships>";
+
+    var contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+      + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+      + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+      + '<Default Extension="xml" ContentType="application/xml"/>'
+      + '<Default Extension="png" ContentType="image/png"/>'
+      + '<Default Extension="jpeg" ContentType="image/jpeg"/>'
+      + '<Default Extension="gif" ContentType="image/gif"/>'
+      + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+      + '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
+      + "</Types>";
+
+    var pkgRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+      + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+      + '<Relationship Id="rId1" Type="' + NS.r + '/officeDocument" Target="word/document.xml"/>'
+      + "</Relationships>";
+
+    var entries = [
+      { name: "[Content_Types].xml",        data: utf8(contentTypes) },
+      { name: "_rels/.rels",                data: utf8(pkgRels) },
+      { name: "word/document.xml",          data: utf8(documentXml) },
+      { name: "word/styles.xml",            data: utf8(stylesXml) },
+      { name: "word/_rels/document.xml.rels", data: utf8(docRels) }
+    ].concat(media);
+
+    return makeZip(entries, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  }
+
+  /* ================= ZIP / DOCX okuma (girdi zaten Office dosyasıysa) ================= */
+
+  function isZip(b){
+    return b.length > 4 && b[0] === 0x50 && b[1] === 0x4B && b[2] === 0x03 && b[3] === 0x04;
+  }
+
+  function b64encode(u8){
+    var s = "", step = 0x8000;
+    for (var i = 0; i < u8.length; i += step)
+      s += String.fromCharCode.apply(null, u8.subarray(i, i + step));
+    return btoa(s);
+  }
+
+  /* Merkezi dizinden parça listesi çıkarılır (ZIP64 desteklenmez) */
+  function readZip(bytes){
+    var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    var eo = -1, stop = Math.max(0, bytes.length - 22 - 65535);
+    for (var i = bytes.length - 22; i >= stop; i--)
+      if (dv.getUint32(i, true) === 0x06054b50){ eo = i; break; }
+    if (eo < 0) throw new Error("ZIP merkezi dizini bulunamadı.");
+
+    var count = dv.getUint16(eo + 10, true), off = dv.getUint32(eo + 16, true);
+    if (off === 0xFFFFFFFF) throw new Error("ZIP64 arşivleri desteklenmiyor.");
+
+    var out = {}, p = off;
+    for (var n = 0; n < count; n++){
+      if (p + 46 > bytes.length || dv.getUint32(p, true) !== 0x02014b50) break;
+      var method = dv.getUint16(p + 10, true);
+      var csize = dv.getUint32(p + 20, true), usize = dv.getUint32(p + 24, true);
+      var nameLen = dv.getUint16(p + 28, true),
+          exLen   = dv.getUint16(p + 30, true),
+          cmLen   = dv.getUint16(p + 32, true);
+      var lh = dv.getUint32(p + 42, true);
+      var name = new TextDecoder().decode(bytes.subarray(p + 46, p + 46 + nameLen));
+      if (lh + 30 <= bytes.length && dv.getUint32(lh, true) === 0x04034b50){
+        var start = lh + 30 + dv.getUint16(lh + 26, true) + dv.getUint16(lh + 28, true);
+        out[name] = { method: method, raw: bytes.subarray(start, start + csize), size: usize };
+      }
+      p += 46 + nameLen + exLen + cmLen;
+    }
+    if (!Object.keys(out).length) throw new Error("ZIP içeriği okunamadı.");
+    return out;
+  }
+
+  function inflate(entry){
+    if (!entry) return Promise.reject(new Error("Aranan parça arşivde yok."));
+    if (entry.method === 0) return Promise.resolve(entry.raw);
+    if (entry.method !== 8) return Promise.reject(new Error("Desteklenmeyen ZIP sıkıştırması (" + entry.method + ")."));
+    if (typeof DecompressionStream === "undefined")
+      return Promise.reject(new Error("Bu tarayıcı sıkıştırılmış ZIP açmayı desteklemiyor."));
+    var stream = new Blob([entry.raw]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+    return new Response(stream).arrayBuffer().then(function(b){ return new Uint8Array(b); });
+  }
+
+  function officeKind(zip){
+    if (zip["word/document.xml"])    return "docx";
+    if (zip["xl/workbook.xml"])      return "xlsx";
+    if (zip["ppt/presentation.xml"]) return "pptx";
+    return "zip";
+  }
+
+  var WEB_IMG = { png:"image/png", jpg:"image/jpeg", jpeg:"image/jpeg",
+                  gif:"image/gif", bmp:"image/bmp", webp:"image/webp", svg:"image/svg+xml" };
+
+  /* Görselleri data URI'ye, köprü hedeflerini haritaya çevirir */
+  /* Liste biçimleri word/numbering.xml'de durur; madde işaretleri buradan gelir */
+  function readDocxNumbering(zip, res){
+    var part = zip["word/numbering.xml"];
+    if (!part) return Promise.resolve(res);
+    return inflate(part).then(function(buf){
+      var doc = new DOMParser().parseFromString(new TextDecoder().decode(buf), "application/xml");
+      var abs = {}, an = doc.getElementsByTagNameNS(NS.w, "abstractNum");
+      for (var i = 0; i < an.length; i++){
+        var map = abs[an[i].getAttributeNS(NS.w, "abstractNumId")] = {};
+        var lvls = an[i].getElementsByTagNameNS(NS.w, "lvl");
+        for (var j = 0; j < lvls.length; j++){
+          var fmt = lvls[j].getElementsByTagNameNS(NS.w, "numFmt")[0];
+          map[lvls[j].getAttributeNS(NS.w, "ilvl")] = fmt ? (fmt.getAttributeNS(NS.w, "val") || "bullet") : "bullet";
+        }
+      }
+      var nums = doc.getElementsByTagNameNS(NS.w, "num");
+      for (var k = 0; k < nums.length; k++){
+        var ref = nums[k].getElementsByTagNameNS(NS.w, "abstractNumId")[0];
+        if (ref) res.numbering[nums[k].getAttributeNS(NS.w, "numId")] = abs[ref.getAttributeNS(NS.w, "val")] || {};
+      }
+      return res;
+    }).catch(function(){ return res; });
+  }
+
+  function readDocxResources(zip){
+    var res = { images: {}, links: {}, numbering: {}, counters: {} };
+    var rels = zip["word/_rels/document.xml.rels"];
+    if (!rels) return Promise.resolve(res);
+
+    return inflate(rels).then(function(buf){
+      var doc = new DOMParser().parseFromString(new TextDecoder().decode(buf), "application/xml");
+      var list = doc.getElementsByTagName("Relationship"), jobs = [];
+      for (var i = 0; i < list.length; i++){
+        var id     = list[i].getAttribute("Id"),
+            type   = list[i].getAttribute("Type") || "",
+            target = list[i].getAttribute("Target") || "";
+        if (!id) continue;
+        if (/\/hyperlink$/.test(type)){ res.links[id] = target; continue; }
+        if (!/\/image$/.test(type)) continue;
+
+        var path = target.charAt(0) === "/" ? target.slice(1)
+                 : "word/" + target.replace(/^\.\//, "").replace(/^\.\.\//, "");
+        var imgMime = WEB_IMG[(path.split(".").pop() || "").toLowerCase()];
+        if (!imgMime || !zip[path]) continue;
+
+        jobs.push(inflate(zip[path]).then(function(rid, m, data){
+          res.images[rid] = "data:" + m + ";base64," + b64encode(data);
+        }.bind(null, id, imgMime)).catch(function(){}));
+      }
+      return Promise.all(jobs).then(function(){ return res; });
+    });
+  }
+
+  function docxDrawing(drawing, res){
+    var blip = drawing.getElementsByTagNameNS(NS.a, "blip")[0];
+    if (!blip) return "";
+    var src = res.images[blip.getAttributeNS(NS.r, "embed")];
+    return src ? '<img src="' + src + '" alt="">' : "";
+  }
+
+  function docxRuns(node, res){
+    var out = "", kids = node.childNodes;
+    for (var i = 0; i < kids.length; i++){
+      var n = kids[i];
+      if (n.nodeType !== 1) continue;
+
+      if (n.localName === "hyperlink"){
+        var href = res.links[n.getAttributeNS(NS.r, "id")];
+        if (href && !/^(https?:|mailto:)/i.test(href)) href = null;   // javascript: vb. bağlantıları at
+        var body = docxRuns(n, res);
+        out += href ? '<a href="' + esc(href) + '">' + body + "</a>" : body;
+        continue;
+      }
+      if (n.localName !== "r") continue;
+
+      var inner = "", rk = n.childNodes, rPr = null;
+      for (var j = 0; j < rk.length; j++){
+        var c = rk[j];
+        if (c.nodeType !== 1) continue;
+        if (c.localName === "rPr")          rPr = c;
+        else if (c.localName === "t")       inner += esc(c.textContent);
+        else if (c.localName === "br")      inner += "<br>";
+        else if (c.localName === "tab")     inner += "&nbsp;&nbsp;&nbsp;&nbsp;";
+        else if (c.localName === "drawing") inner += docxDrawing(c, res);
+      }
+      if (!inner) continue;
+
+      if (rPr){
+        if (rPr.getElementsByTagNameNS(NS.w, "u")[0])      inner = "<u>" + inner + "</u>";
+        if (rPr.getElementsByTagNameNS(NS.w, "i")[0])      inner = "<em>" + inner + "</em>";
+        if (rPr.getElementsByTagNameNS(NS.w, "strike")[0]) inner = "<s>" + inner + "</s>";
+        if (rPr.getElementsByTagNameNS(NS.w, "b")[0])      inner = "<strong>" + inner + "</strong>";
+      }
+      out += inner;
+    }
+    return out;
+  }
+
+  function docxBlocks(parent, res){
+    var html = "", kids = parent.childNodes;
+    for (var i = 0; i < kids.length; i++){
+      var n = kids[i];
+      if (n.nodeType !== 1) continue;
+
+      if (n.localName === "p"){
+        var style = "", pPr = null;
+        for (var k = 0; k < n.childNodes.length; k++)
+          if (n.childNodes[k].nodeType === 1 && n.childNodes[k].localName === "pPr") pPr = n.childNodes[k];
+        if (pPr){
+          var ps = pPr.getElementsByTagNameNS(NS.w, "pStyle")[0];
+          if (ps) style = ps.getAttributeNS(NS.w, "val") || "";
+        }
+        var inner = docxRuns(n, res);
+
+        // Liste maddesi: işaret ve numara numbering.xml'den üretilir
+        var numPr = pPr ? pPr.getElementsByTagNameNS(NS.w, "numPr")[0] : null;
+        var marker = "", lvl = 0;
+        if (numPr){
+          var nEl = numPr.getElementsByTagNameNS(NS.w, "numId")[0];
+          var lEl = numPr.getElementsByTagNameNS(NS.w, "ilvl")[0];
+          var nId = nEl ? nEl.getAttributeNS(NS.w, "val") : "";
+          var il  = lEl ? (lEl.getAttributeNS(NS.w, "val") || "0") : "0";
+          lvl = parseInt(il, 10) || 0;
+          if (((res.numbering[nId] || {})[il] || "bullet") === "bullet"){
+            marker = "• ";
+          } else {
+            var key = nId + ":" + il;
+            res.counters[key] = (res.counters[key] || 0) + 1;
+            marker = res.counters[key] + ". ";
+            for (var ck in res.counters)                       // alt seviyeler yeniden başlar
+              if (ck.indexOf(nId + ":") === 0 && parseInt(ck.split(":")[1], 10) > lvl) res.counters[ck] = 0;
+          }
+        }
+
+        // Stil kimlikleri Word'ün diline göre değişebiliyor (Heading1 / Balk1 / Başlık1)
+        var hm = style.match(/^(?:Heading|Ba[sş]l[ıi]?k|Balk)\s*([1-6])$/i);
+        if (hm && !numPr){
+          html += "<h" + hm[1] + ">" + (inner || "&nbsp;") + "</h" + hm[1] + ">";
+        } else if (numPr || /^(ListParagraph|ListeParagraf)$/i.test(style)){
+          html += '<p class="liste"' + (lvl ? ' style="margin-left:' + (26 + lvl * 22) + 'px"' : "")
+                + ">" + marker + (inner || "&nbsp;") + "</p>";
+        } else {
+          html += "<p>" + (inner || "<br>") + "</p>";
+        }
+        continue;
+      }
+
+      if (n.localName === "tbl"){
+        html += "<table>";
+        for (var r = 0; r < n.childNodes.length; r++){
+          var tr = n.childNodes[r];
+          if (tr.nodeType !== 1 || tr.localName !== "tr") continue;
+          html += "<tr>";
+          for (var c2 = 0; c2 < tr.childNodes.length; c2++){
+            var tc = tr.childNodes[c2];
+            if (tc.nodeType !== 1 || tc.localName !== "tc") continue;
+            html += "<td>" + docxBlocks(tc, res) + "</td>";
+          }
+          html += "</tr>";
+        }
+        html += "</table>";
+      }
+    }
+    return html;
+  }
+
+  function docxToHtml(xmlText, res){
+    var doc = new DOMParser().parseFromString(xmlText, "application/xml");
+    if (doc.getElementsByTagName("parsererror").length) throw new Error("document.xml okunamadı.");
+    var body = doc.getElementsByTagNameNS(NS.w, "body")[0];
+    if (!body) throw new Error("Word gövdesi bulunamadı.");
+    var html = docxBlocks(body, res);
+    return html || "<p><i>(belge boş)</i></p>";
+  }
+
+  /* ================= ana dönüşüm ================= */
+
+  var OFFICE_MIME = {
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  };
+  var IMG_EXT = { "image/png":"png", "image/jpeg":"jpg", "image/gif":"gif", "image/webp":"webp",
+                  "image/x-icon":"ico", "image/bmp":"bmp", "image/svg+xml":"svg" };
+
+  /* Başarısız dönüşümden sonra kaydet düğmeleri eski içeriğe ait kalmasın */
+  function lockOutputs(){
+    result = null;
+    ["btnSave", "btnWord", "btnRaw", "btnCopy", "btnOpen"].forEach(function(id){ $(id).disabled = true; });
+    $("btnRaw").textContent = "Kaynak dosya";
+  }
+
+  function fail(msg){ lockOutputs(); setStatus(msg, "err"); }
+
+  function convert(){
+    if (!input.value.trim()){ fail("Önce base64 metnini gir."); return; }
+    setStatus("Çözülüyor…");
+    build().catch(function(e){ fail((e && e.message) ? e.message : String(e)); });
+  }
+
+  async function build(){
+    var norm, bytes;
+    try { norm = normalize(input.value); bytes = toBytes(norm.b64); }
+    catch(e){ fail(e.message); return; }
+
+    var mime = norm.mime || sniff(bytes);
+    var binary = mime && /^(image|audio|video|application)\//.test(mime)
+                 && !/(html|json|xml|javascript|svg)/i.test(mime);
+    var text = binary ? null : decodeText(bytes);
+
+    var html, kind, plain = null, word = true, raw = null, original = null, note = "";
+
+    if (text !== null && (looksLikeHtml(text) || /html/i.test(mime || ""))){
+      if (/<!doctype\s+html|<html[\s>]/i.test(text)){
+        html = text; kind = "HTML belgesi";
+      } else {
+        // Parça HTML: şablona sarılmazsa charset olmadığı için Türkçe karakterler bozulur.
+        html = $("optWrap").checked ? wrap("HTML", text) : text;
+        kind = "HTML parçası";
+      }
+    } else if (isZip(bytes)){
+      var zip = null;
+      try { zip = readZip(bytes); } catch(e){ note = " " + e.message; }
+      var pk = zip ? officeKind(zip) : "bozuk";
+
+      if (pk === "docx"){
+        kind = "Word belgesi (.docx)";
+        original = bytes;
+        raw = { bytes: bytes, ext: "docx", mime: OFFICE_MIME.docx };
+        try {
+          var res = await readDocxResources(zip);
+          await readDocxNumbering(zip, res);
+          var xmlText = new TextDecoder().decode(await inflate(zip["word/document.xml"]));
+          var inner = docxToHtml(xmlText, res);
+          html = $("optWrap").checked ? wrap("Word belgesi", inner) : inner;
+        } catch(e2){
+          note = " Önizleme oluşturulamadı: " + e2.message;
+          html = wrap(kind, "<p>Word belgesi tanındı (" + bytes.length + " bayt), ancak içeriği okunamadı: "
+               + esc(e2.message) + "</p><p><b>Word (.docx) kaydet</b> ile dosyayı olduğu gibi alabilirsin.</p>");
+        }
+
+      } else if (pk === "xlsx" || pk === "pptx"){
+        kind = pk === "xlsx" ? "Excel çalışma kitabı (.xlsx)" : "PowerPoint sunumu (.pptx)";
+        raw = { bytes: bytes, ext: pk, mime: OFFICE_MIME[pk] };
+        word = false;
+        html = wrap(kind, "<p>" + esc(kind) + " tanındı, " + bytes.length + " bayt.</p>"
+             + "<p>İçeriği HTML olarak gösterilemiyor. <b>Kaynak dosya (." + pk + ")</b> düğmesiyle kaydedip "
+             + "Office'te açabilirsin.</p>");
+
+      } else if (zip){
+        var names = Object.keys(zip);
+        kind = "ZIP arşivi";
+        raw = { bytes: bytes, ext: "zip", mime: "application/zip" };
+        word = false;
+        html = wrap("ZIP arşivi", "<p>ZIP arşivi — " + names.length + " öğe, " + bytes.length + " bayt.</p><ul>"
+             + names.slice(0, 200).map(function(x){ return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>"
+             + (names.length > 200 ? "<p>… ve " + (names.length - 200) + " öğe daha</p>" : ""));
+
+      } else {
+        kind = "Bozuk ZIP verisi";
+        raw = { bytes: bytes, ext: "zip", mime: "application/zip" };
+        word = false;
+        html = wrap(kind, "<p>ZIP imzası var ama arşiv okunamadı, " + bytes.length + " bayt.</p>");
+      }
+
+    } else if (mime && /^image\//.test(mime)){
+      var img = '<img src="data:' + mime + ";base64," + norm.b64 + '" alt="base64 görsel">';
+      html = $("optWrap").checked ? wrap("Görsel", img) : img;
+      kind = "Görsel (" + mime + ")";
+      word = /^image\/(png|jpeg|gif)$/.test(mime);
+      raw = { bytes: bytes, ext: IMG_EXT[mime] || "img", mime: mime };
+    } else if (mime === "application/pdf"){
+      var pdf = '<embed src="data:application/pdf;base64,' + norm.b64 + '" type="application/pdf">';
+      html = $("optWrap").checked ? wrap("PDF", pdf) : pdf;
+      kind = "PDF";
+      word = false;
+      raw = { bytes: bytes, ext: "pdf", mime: "application/pdf" };
+    } else if (text !== null){
+      html = $("optWrap").checked ? wrap("Metin", "<pre>" + esc(text) + "</pre>") : "<pre>" + esc(text) + "</pre>";
+      kind = "Düz metin";
+      plain = text;
+    } else {
+      kind = "İkili veri" + (mime ? " (" + mime + ")" : "");
+      word = false;
+      raw = { bytes: bytes, ext: "bin", mime: mime || "application/octet-stream" };
+      html = wrap("İkili dosya",
+        "<p>Çözülen içerik metin değil" + (mime ? " (" + esc(mime) + ")" : "") + ", " + bytes.length + " bayt.</p>"
+        + "<p><b>Kaynak dosya</b> düğmesiyle diske kaydedebilirsin.</p>");
+    }
+
+    result = { html: html, kind: kind, size: bytes.length, text: plain,
+               word: word, raw: raw, original: original };
+    // Çözülen içerikteki betikler uygulamanın adresinde çalışmasın. Tek istisna, PDF görüntüleyici
+    // eklentisine ihtiyaç duyan ve tamamen bizim ürettiğimiz PDF sarmalayıcısı.
+    if (kind === "PDF") preview.removeAttribute("sandbox");
+    else preview.setAttribute("sandbox", "allow-popups allow-popups-to-escape-sandbox");
+    preview.srcdoc = html;
+    codeEl.textContent = html;
+    ["btnSave", "btnCopy", "btnOpen"].forEach(function(id){ $(id).disabled = false; });
+    $("btnWord").disabled = !word;
+    $("btnRaw").disabled  = !raw;
+    $("btnRaw").textContent = raw ? "Kaynak dosya (." + raw.ext + ")" : "Kaynak dosya";
+
+    setStatus("Tamam — " + kind + ", " + bytes.length.toLocaleString("tr-TR") + " bayt çözüldü."
+      + (word ? "" : " Word'e çevrilemez; .html ya da kaynak dosya olarak kaydedebilirsin.") + note,
+      note ? "err" : "ok");
+  }
+
+  /* ================= arayüz ================= */
+
+  function download(blob, filename){
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function tab(showPreview){
+    $("tabPreview").setAttribute("aria-selected", String(showPreview));
+    $("tabCode").setAttribute("aria-selected", String(!showPreview));
+    preview.classList.toggle("hidden", !showPreview);
+    codeEl.classList.toggle("hidden", showPreview);
+  }
+  $("tabPreview").onclick = function(){ tab(true); };
+  $("tabCode").onclick    = function(){ tab(false); };
+
+  $("btnConvert").onclick = convert;
+
+  $("btnClear").onclick = function(){
+    input.value = ""; result = null; preview.srcdoc = ""; codeEl.textContent = "";
+    ["btnSave", "btnWord", "btnRaw", "btnCopy", "btnOpen"].forEach(function(id){ $(id).disabled = true; });
+    $("btnRaw").textContent = "Kaynak dosya";
+    setStatus("Temizlendi.");
+    input.focus();
+  };
+
+  $("btnSample").onclick = function(){
+    var demo = '<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Ornek</title></head>'
+      + '<body style="font-family:system-ui;padding:32px">'
+      + "<h1>Merhaba!</h1><p>Bu sayfa <b>base64</b> icinden cozuldu.</p>"
+      + "<h2>Neler yapabilir</h2>"
+      + "<ul><li>Onizleme calisiyor</li><li><i>.html</i> olarak kaydedebilirsin</li>"
+      + "<li>Word <b>.docx</b> olarak da kaydedebilirsin</li></ul>"
+      + "<table><tr><th>Bicim</th><th>Durum</th></tr>"
+      + "<tr><td>HTML</td><td>hazir</td></tr><tr><td>Word</td><td>hazir</td></tr></table>"
+      + "</body></html>";
+    input.value = btoa(unescape(encodeURIComponent(demo)));
+    convert();
+  };
+
+  $("btnPaste").onclick = function(){
+    if (!navigator.clipboard || !navigator.clipboard.readText){
+      setStatus("Tarayıcı pano okumayı desteklemiyor; Ctrl+V ile yapıştır.", "err"); return;
+    }
+    navigator.clipboard.readText()
+      .then(function(t){ input.value = t; convert(); })
+      .catch(function(){ setStatus("Pano izni verilmedi; Ctrl+V ile yapıştır.", "err"); });
+  };
+
+  function readFile(f){
+    var r = new FileReader();
+    r.onload  = function(){ input.value = String(r.result); convert(); };
+    r.onerror = function(){ setStatus("Dosya okunamadı.", "err"); };
+    r.readAsText(f);
+  }
+
+  $("fileIn").onchange = function(e){
+    var f = e.target.files[0];
+    if (f) readFile(f);
+    e.target.value = "";
+  };
+
+  var panel = $("inPanel");
+  ["dragenter", "dragover"].forEach(function(ev){
+    panel.addEventListener(ev, function(e){ e.preventDefault(); panel.classList.add("drop"); });
+  });
+  ["dragleave", "drop"].forEach(function(ev){
+    panel.addEventListener(ev, function(e){ e.preventDefault(); panel.classList.remove("drop"); });
+  });
+  panel.addEventListener("drop", function(e){
+    var f = e.dataTransfer.files[0];
+    if (f) readFile(f);
+  });
+
+  $("btnSave").onclick = function(){
+    download(new Blob([result.html], { type: "text/html;charset=utf-8" }), "cikti.html");
+    setStatus("cikti.html indirildi.", "ok");
+  };
+
+  $("btnWord").onclick = function(){
+    try {
+      // Girdi zaten bir .docx ise yeniden üretmeyiz; kaynağı birebir kaydederiz.
+      var blob = result.original
+        ? new Blob([result.original], { type: OFFICE_MIME.docx })
+        : htmlToDocx(result.html, result.text);
+      download(blob, "cikti.docx");
+      setStatus("cikti.docx indirildi (" + Math.round(blob.size / 1024) + " KB)"
+        + (result.original ? " — kaynak belge birebir korundu." : "."), "ok");
+    } catch(e){
+      setStatus("Word dosyası oluşturulamadı: " + e.message, "err");
+    }
+  };
+
+  $("btnRaw").onclick = function(){
+    var name = "cikti." + result.raw.ext;
+    download(new Blob([result.raw.bytes], { type: result.raw.mime }), name);
+    setStatus(name + " indirildi (" + result.raw.bytes.length.toLocaleString("tr-TR") + " bayt).", "ok");
+  };
+
+  $("btnCopy").onclick = function(){
+    navigator.clipboard.writeText(result.html)
+      .then(function(){ setStatus("HTML panoya kopyalandı.", "ok"); })
+      .catch(function(){ setStatus("Kopyalanamadı — 'HTML kaynağı' sekmesinden seçip kopyala.", "err"); });
+  };
+
+  /* Yeni sekme aynı adreste açılır; CSP ile betikleri kapatırız. Meta en başa konur
+     (doctype varsa hemen arkasına) — ayrıştırıcı onu head'e taşır, içerik bunu atlatamaz. */
+  function withoutScripts(html){
+    var meta = '<meta http-equiv="Content-Security-Policy" content="script-src ' + "'none'" + '">';
+    var dt = html.match(/^\s*<!doctype[^>]*>/i);
+    return dt ? dt[0] + meta + html.slice(dt[0].length) : meta + html;
+  }
+
+  $("btnOpen").onclick = function(){
+    var w = window.open("", "_blank");
+    if (!w){ setStatus("Açılır pencere engellendi.", "err"); return; }
+    w.document.open(); w.document.write(withoutScripts(result.html)); w.document.close();
+  };
+
+  input.addEventListener("keydown", function(e){
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter"){ e.preventDefault(); convert(); }
+  });
+
+  input.focus();
+})();
+</script>
+</body>
+</html>
