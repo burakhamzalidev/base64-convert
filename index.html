@@ -50,6 +50,17 @@
   .tabs{display:flex;gap:4px;padding:8px 14px 0}
   .tabs button{border-radius:7px 7px 0 0}
   .tabs button[aria-selected=true]{background:var(--code);border-color:var(--border);font-weight:600}
+  .modes{display:flex;gap:6px;padding:10px 14px;border-bottom:1px solid var(--border)}
+  .modes button{font-size:12.5px;font-weight:600;padding:6px 12px}
+  .modes button[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+  .dropzone{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+            gap:10px;padding:24px;text-align:center;color:var(--muted);font-size:13.5px}
+  .dropzone strong{color:var(--text);font-size:15px}
+  .dropzone .hint{font-size:12.5px}
+  #encText{height:120px;flex:none;border-top:1px solid var(--border)}
+  #b64out{position:absolute;inset:0;width:100%;height:100%;border:0;outline:0;resize:none;padding:14px;
+          background:var(--code);color:var(--text);
+          font:12.5px/1.5 Consolas,monospace;white-space:pre-wrap;word-break:break-all}
   .view{flex:1;position:relative;background:var(--code)}
   iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
   pre.out{position:absolute;inset:0;margin:0;overflow:auto;padding:14px;
@@ -69,39 +80,67 @@
 
 <main>
   <section class="panel" id="inPanel">
-    <h2>Base64 girdi</h2>
+    <div class="modes">
+      <button id="modeDecode" aria-selected="true">Base64 → Dosya (çöz)</button>
+      <button id="modeEncode" aria-selected="false">Dosya → Base64 (kodla)</button>
+    </div>
+
+    <!-- ÇÖZME -->
     <textarea id="input" spellcheck="false" placeholder="PGgxPk1lcmhhYmE8L2gxPg==&#10;&#10;veya:  data:image/png;base64,iVBORw0KGgo...&#10;&#10;Buraya .txt / .b64 dosyası da sürükleyebilirsin."></textarea>
-    <div class="opts">
+    <div class="opts" id="decOpts">
       <label><input type="checkbox" id="optWrap" checked> Metin/resim için HTML şablonuna sar</label>
       <label><input type="checkbox" id="optUrlSafe" checked> URL-safe base64 (-_) kabul et</label>
     </div>
-    <div class="bar">
+    <div class="bar" id="decBarIn">
       <button class="primary" id="btnConvert">Dönüştür</button>
       <label class="file">Dosya seç<input type="file" id="fileIn"></label>
       <button id="btnPaste">Panodan yapıştır</button>
       <button id="btnSample">Örnek</button>
       <button id="btnClear">Temizle</button>
     </div>
+
+    <!-- KODLAMA -->
+    <div class="dropzone hidden" id="encDrop">
+      <strong>Dosyayı buraya sürükle</strong>
+      <span>her tür dosya olur — resim, PDF, Word, ZIP…</span>
+      <label class="file">Dosya seç<input type="file" id="encFileIn"></label>
+      <span class="hint">ya da aşağıdaki kutuya metin yaz</span>
+    </div>
+    <textarea id="encText" class="hidden" spellcheck="false" placeholder="Base64'e çevrilecek metni buraya yaz…"></textarea>
+    <div class="opts hidden" id="encOpts">
+      <label><input type="checkbox" id="optDataUri"> data: URI olarak ver</label>
+      <label><input type="checkbox" id="optLineWrap"> 76 karakterde satır kır</label>
+    </div>
+    <div class="bar hidden" id="encBarIn">
+      <button class="primary" id="btnEncode">Base64'e çevir</button>
+      <button id="btnEncClear">Temizle</button>
+    </div>
+
     <div class="status" id="status">Hazır. (Ctrl+Enter ile de dönüştürebilirsin.)</div>
   </section>
 
   <section class="panel">
-    <h2>Sonuç</h2>
-    <div class="tabs">
+    <h2 id="outTitle">Sonuç</h2>
+    <div class="tabs" id="decTabs">
       <button id="tabPreview" aria-selected="true">Önizleme</button>
       <button id="tabCode" aria-selected="false">HTML kaynağı</button>
     </div>
     <div class="view">
       <iframe id="preview" title="Önizleme" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>
       <pre class="out hidden" id="code"></pre>
+      <textarea id="b64out" class="hidden" readonly spellcheck="false"></textarea>
     </div>
-    <div class="bar">
+    <div class="bar" id="decBar">
       <button class="primary" id="btnSave" disabled>.html kaydet</button>
       <button class="word" id="btnWord" disabled>Word (.docx) kaydet</button>
       <button id="btnPdf" disabled>PDF olarak kaydet</button>
       <button id="btnRaw" disabled>Kaynak dosya</button>
       <button id="btnCopy" disabled>HTML'i kopyala</button>
       <button id="btnOpen" disabled>Yeni sekmede aç</button>
+    </div>
+    <div class="bar hidden" id="encBar">
+      <button class="primary" id="btnB64Copy" disabled>Base64'ü kopyala</button>
+      <button id="btnB64Save" disabled>.txt kaydet</button>
     </div>
   </section>
 </main>
@@ -974,6 +1013,90 @@
       note ? "err" : "ok");
   }
 
+  /* ================= ters yön: dosya / metin → base64 ================= */
+
+  var mode = "decode";
+  var encSource = null;   // { bytes, mime, name, label, b64 }
+
+  function setMode(m){
+    mode = m;
+    var dec = (m === "decode");
+    $("modeDecode").setAttribute("aria-selected", String(dec));
+    $("modeEncode").setAttribute("aria-selected", String(!dec));
+
+    ["input", "decOpts", "decBarIn", "decTabs", "decBar"].forEach(function(id){
+      $(id).classList.toggle("hidden", !dec);
+    });
+    ["encDrop", "encText", "encOpts", "encBarIn", "encBar"].forEach(function(id){
+      $(id).classList.toggle("hidden", dec);
+    });
+
+    if (dec){
+      $("b64out").classList.add("hidden");
+      tab($("tabPreview").getAttribute("aria-selected") === "true");
+    } else {
+      $("preview").classList.add("hidden");
+      $("code").classList.add("hidden");
+      $("b64out").classList.remove("hidden");
+    }
+
+    $("outTitle").textContent = dec ? "Sonuç" : "Base64 çıktısı";
+    setStatus(dec ? "Hazır. (Ctrl+Enter ile de dönüştürebilirsin.)"
+                  : "Bir dosya sürükle, seç ya da aşağıya metin yaz.");
+  }
+
+  function renderEncoded(){
+    if (!encSource) return;
+    if (!encSource.b64) encSource.b64 = b64encode(encSource.bytes);
+
+    var body = $("optLineWrap").checked ? encSource.b64.replace(/(.{76})/g, "$1\n") : encSource.b64;
+    var text = $("optDataUri").checked
+      ? "data:" + encSource.mime + ";base64," + body
+      : body;
+
+    $("b64out").value = text;
+    $("btnB64Copy").disabled = false;
+    $("btnB64Save").disabled = false;
+    setStatus(encSource.label + " → " + encSource.b64.length.toLocaleString("tr-TR")
+      + " karakterlik base64 (" + encSource.bytes.length.toLocaleString("tr-TR") + " bayt).", "ok");
+  }
+
+  function encodeFile(f){
+    setStatus("Kodlanıyor…");
+    var r = new FileReader();
+    r.onload = function(){
+      var bytes = new Uint8Array(r.result);
+      encSource = {
+        bytes: bytes,
+        mime: f.type || sniff(bytes) || "application/octet-stream",
+        name: f.name + ".b64.txt",
+        label: f.name
+      };
+      renderEncoded();
+    };
+    r.onerror = function(){ setStatus("Dosya okunamadı.", "err"); };
+    r.readAsArrayBuffer(f);
+  }
+
+  function encodeText(t){
+    encSource = {
+      bytes: new TextEncoder().encode(t),
+      mime: "text/plain;charset=utf-8",
+      name: "metin.b64.txt",
+      label: "Metin"
+    };
+    renderEncoded();
+  }
+
+  function clearEncode(){
+    encSource = null;
+    $("encText").value = "";
+    $("b64out").value = "";
+    $("btnB64Copy").disabled = true;
+    $("btnB64Save").disabled = true;
+    setStatus("Temizlendi.");
+  }
+
   /* ================= arayüz ================= */
 
   function download(blob, filename){
@@ -1048,8 +1171,51 @@
   });
   panel.addEventListener("drop", function(e){
     var f = e.dataTransfer.files[0];
-    if (f) readFile(f);
+    if (!f) return;
+    // Çözme modunda dosya base64 METNİ olarak okunur; kodlama modunda ham bayt olarak.
+    if (mode === "decode") readFile(f); else encodeFile(f);
   });
+
+  $("modeDecode").onclick = function(){ setMode("decode"); };
+  $("modeEncode").onclick = function(){ setMode("encode"); };
+
+  $("encFileIn").onchange = function(e){
+    var f = e.target.files[0];
+    if (f) encodeFile(f);
+    e.target.value = "";
+  };
+
+  $("btnEncode").onclick = function(){
+    var t = $("encText").value;
+    if (t) { encodeText(t); return; }
+    if (encSource) { renderEncoded(); return; }
+    setStatus("Önce bir dosya seç ya da metin yaz.", "err");
+  };
+
+  $("btnEncClear").onclick = clearEncode;
+
+  ["optDataUri", "optLineWrap"].forEach(function(id){
+    $(id).onchange = function(){ if (encSource) renderEncoded(); };
+  });
+
+  $("encText").addEventListener("keydown", function(e){
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter"){
+      e.preventDefault();
+      if ($("encText").value) encodeText($("encText").value);
+    }
+  });
+
+  $("btnB64Copy").onclick = function(){
+    navigator.clipboard.writeText($("b64out").value)
+      .then(function(){ setStatus("Base64 panoya kopyalandı.", "ok"); })
+      .catch(function(){ setStatus("Kopyalanamadı — çıktı kutusundan seçip kopyala.", "err"); });
+  };
+
+  $("btnB64Save").onclick = function(){
+    var name = encSource ? encSource.name : "base64.txt";
+    download(new Blob([$("b64out").value], { type: "text/plain;charset=utf-8" }), name);
+    setStatus(name + " indirildi.", "ok");
+  };
 
   $("btnSave").onclick = function(){
     download(new Blob([result.html], { type: "text/html;charset=utf-8" }), "cikti.html");

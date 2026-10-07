@@ -2,7 +2,18 @@
 
 Base64 verisini çözüp içeriğini otomatik tanıyan, önizleyen ve dosya olarak kaydeden tek sayfalık web uygulaması.
 
+İki yönlü çalışır: base64'ü çözer, ya da dosya/metinden base64 üretir.
+
 ## Özellikler
+
+### Dosya → Base64 (kodlama)
+
+- Her tür dosyayı sürükle-bırak ya da seç; metin de yazılabilir
+- Çıktı düz base64 veya `data:` URI olarak alınabilir
+- 76 karakterde satır kırma (e-posta/MIME uyumu için)
+- Panoya kopyala ya da `.txt` olarak kaydet
+
+### Base64 → Dosya (çözme)
 
 - **Otomatik içerik tespiti:** HTML, düz metin, PNG/JPEG/GIF/WEBP, PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), ZIP
 - **HTML çıktısı:** önizleme, kaynak görünümü, `.html` olarak kaydetme
