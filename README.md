@@ -3,6 +3,12 @@
 Base64 verisini çözüp içeriğini otomatik tanıyan, önizleyen ve dosya olarak kaydeden tek sayfalık web uygulaması.
 
 İki yönlü çalışır: base64'ü çözer, ya da dosya/metinden base64 üretir.
+Arayüz Türkçe ve İngilizce; sağ üstteki **TR / EN** düğmeleriyle değişir, tercih tarayıcıda saklanır.
+
+> **English:** a single-page, dependency-free browser tool that converts base64 both ways. It detects the
+> decoded content automatically (HTML, text, images, PDF, Word, Excel, PowerPoint, ZIP), previews it, and
+> saves it as `.html`, `.docx`, PDF or the original file — and encodes any file or text back to base64.
+> Nothing is uploaded: all processing happens in your browser. Switch the interface with **TR / EN**.
 
 ## Özellikler
 

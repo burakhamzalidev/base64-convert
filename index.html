@@ -21,8 +21,12 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);
        font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
-  header{padding:20px 24px 8px}
+  header{padding:20px 24px 8px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  header .hgroup{min-width:0}
   h1{margin:0;font-size:20px}
+  .langs{display:flex;gap:4px;flex:none}
+  .langs button{font-size:12px;font-weight:600;padding:5px 10px;letter-spacing:.04em}
+  .langs button[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
   header p{margin:6px 0 0;color:var(--muted);font-size:13px;max-width:82ch}
   main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 24px 24px}
   @media (max-width:900px){main{grid-template-columns:1fr}}
@@ -72,48 +76,52 @@
 </head>
 <body>
 <header>
-  <h1>Base64 → HTML / Word / PDF Dönüştürücü</h1>
-  <p>Base64 metnini yapıştır veya dosya sürükle. İçerik otomatik algılanır — HTML, düz metin, resim, PDF,
-     <strong>Word (.docx)</strong>, Excel, PowerPoint, ZIP — önizlenir ve
-     <strong>.html</strong>, <strong>.docx</strong>, <strong>.pdf</strong> ya da kaynak dosya olarak kaydedilir.</p>
+  <div class="hgroup">
+    <h1 data-i18n="appTitle">Base64 → HTML / Word / PDF Dönüştürücü</h1>
+    <p data-i18n-html="intro">Base64 metnini yapıştır veya dosya sürükle.</p>
+  </div>
+  <div class="langs">
+    <button id="langTr" aria-selected="true">TR</button>
+    <button id="langEn" aria-selected="false">EN</button>
+  </div>
 </header>
 
 <main>
   <section class="panel" id="inPanel">
     <div class="modes">
-      <button id="modeDecode" aria-selected="true">Base64 → Dosya (çöz)</button>
-      <button id="modeEncode" aria-selected="false">Dosya → Base64 (kodla)</button>
+      <button id="modeDecode" aria-selected="true" data-i18n="modeDecode">Base64 → Dosya (çöz)</button>
+      <button id="modeEncode" aria-selected="false" data-i18n="modeEncode">Dosya → Base64 (kodla)</button>
     </div>
 
     <!-- ÇÖZME -->
-    <textarea id="input" spellcheck="false" placeholder="PGgxPk1lcmhhYmE8L2gxPg==&#10;&#10;veya:  data:image/png;base64,iVBORw0KGgo...&#10;&#10;Buraya .txt / .b64 dosyası da sürükleyebilirsin."></textarea>
+    <textarea id="input" spellcheck="false" data-i18n-ph="inputPh"></textarea>
     <div class="opts" id="decOpts">
-      <label><input type="checkbox" id="optWrap" checked> Metin/resim için HTML şablonuna sar</label>
-      <label><input type="checkbox" id="optUrlSafe" checked> URL-safe base64 (-_) kabul et</label>
+      <label><input type="checkbox" id="optWrap" checked> <span data-i18n="optWrap">Metin/resim için HTML şablonuna sar</span></label>
+      <label><input type="checkbox" id="optUrlSafe" checked> <span data-i18n="optUrlSafe">URL-safe base64 (-_) kabul et</span></label>
     </div>
     <div class="bar" id="decBarIn">
-      <button class="primary" id="btnConvert">Dönüştür</button>
-      <label class="file">Dosya seç<input type="file" id="fileIn"></label>
-      <button id="btnPaste">Panodan yapıştır</button>
-      <button id="btnSample">Örnek</button>
-      <button id="btnClear">Temizle</button>
+      <button class="primary" id="btnConvert" data-i18n="btnConvert">Dönüştür</button>
+      <label class="file"><span data-i18n="btnFile">Dosya seç</span><input type="file" id="fileIn"></label>
+      <button id="btnPaste" data-i18n="btnPaste">Panodan yapıştır</button>
+      <button id="btnSample" data-i18n="btnSample">Örnek</button>
+      <button id="btnClear" data-i18n="btnClear">Temizle</button>
     </div>
 
     <!-- KODLAMA -->
     <div class="dropzone hidden" id="encDrop">
-      <strong>Dosyayı buraya sürükle</strong>
-      <span>her tür dosya olur — resim, PDF, Word, ZIP…</span>
-      <label class="file">Dosya seç<input type="file" id="encFileIn"></label>
-      <span class="hint">ya da aşağıdaki kutuya metin yaz</span>
+      <strong data-i18n="dropTitle">Dosyayı buraya sürükle</strong>
+      <span data-i18n="dropSub">her tür dosya olur — resim, PDF, Word, ZIP…</span>
+      <label class="file"><span data-i18n="btnFile">Dosya seç</span><input type="file" id="encFileIn"></label>
+      <span class="hint" data-i18n="dropHint">ya da aşağıdaki kutuya metin yaz</span>
     </div>
-    <textarea id="encText" class="hidden" spellcheck="false" placeholder="Base64'e çevrilecek metni buraya yaz…"></textarea>
+    <textarea id="encText" class="hidden" spellcheck="false" data-i18n-ph="encTextPh"></textarea>
     <div class="opts hidden" id="encOpts">
-      <label><input type="checkbox" id="optDataUri"> data: URI olarak ver</label>
-      <label><input type="checkbox" id="optLineWrap"> 76 karakterde satır kır</label>
+      <label><input type="checkbox" id="optDataUri"> <span data-i18n="optDataUri">data: URI olarak ver</span></label>
+      <label><input type="checkbox" id="optLineWrap"> <span data-i18n="optLineWrap">76 karakterde satır kır</span></label>
     </div>
     <div class="bar hidden" id="encBarIn">
-      <button class="primary" id="btnEncode">Base64'e çevir</button>
-      <button id="btnEncClear">Temizle</button>
+      <button class="primary" id="btnEncode" data-i18n="btnEncode">Base64'e çevir</button>
+      <button id="btnEncClear" data-i18n="btnClear">Temizle</button>
     </div>
 
     <div class="status" id="status">Hazır. (Ctrl+Enter ile de dönüştürebilirsin.)</div>
@@ -122,25 +130,25 @@
   <section class="panel">
     <h2 id="outTitle">Sonuç</h2>
     <div class="tabs" id="decTabs">
-      <button id="tabPreview" aria-selected="true">Önizleme</button>
-      <button id="tabCode" aria-selected="false">HTML kaynağı</button>
+      <button id="tabPreview" aria-selected="true" data-i18n="tabPreview">Önizleme</button>
+      <button id="tabCode" aria-selected="false" data-i18n="tabCode">HTML kaynağı</button>
     </div>
     <div class="view">
-      <iframe id="preview" title="Önizleme" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>
+      <iframe id="preview" data-i18n-title="tabPreview" title="Önizleme" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>
       <pre class="out hidden" id="code"></pre>
       <textarea id="b64out" class="hidden" readonly spellcheck="false"></textarea>
     </div>
     <div class="bar" id="decBar">
-      <button class="primary" id="btnSave" disabled>.html kaydet</button>
-      <button class="word" id="btnWord" disabled>Word (.docx) kaydet</button>
-      <button id="btnPdf" disabled>PDF olarak kaydet</button>
+      <button class="primary" id="btnSave" disabled data-i18n="btnSave">.html kaydet</button>
+      <button class="word" id="btnWord" disabled data-i18n="btnWord">Word (.docx) kaydet</button>
+      <button id="btnPdf" disabled data-i18n="btnPdf">PDF olarak kaydet</button>
       <button id="btnRaw" disabled>Kaynak dosya</button>
-      <button id="btnCopy" disabled>HTML'i kopyala</button>
-      <button id="btnOpen" disabled>Yeni sekmede aç</button>
+      <button id="btnCopy" disabled data-i18n="btnCopy">HTML'i kopyala</button>
+      <button id="btnOpen" disabled data-i18n="btnOpen">Yeni sekmede aç</button>
     </div>
     <div class="bar hidden" id="encBar">
-      <button class="primary" id="btnB64Copy" disabled>Base64'ü kopyala</button>
-      <button id="btnB64Save" disabled>.txt kaydet</button>
+      <button class="primary" id="btnB64Copy" disabled data-i18n="btnB64Copy">Base64'ü kopyala</button>
+      <button id="btnB64Save" disabled data-i18n="btnB64Save">.txt kaydet</button>
     </div>
   </section>
 </main>
@@ -151,6 +159,169 @@
   var $ = function(id){ return document.getElementById(id); };
   var input = $("input"), statusEl = $("status"), preview = $("preview"), codeEl = $("code");
   var result = null;   // { html, kind, size, text, word }
+
+  /* ================= diller ================= */
+  /* Her kayıt [türkçe, ingilizce]. t("anahtar", arg1…) ile {1}, {2} yerine geçer. */
+  var S = {
+    appTitle:    ["Base64 → HTML / Word / PDF Dönüştürücü", "Base64 → HTML / Word / PDF Converter"],
+    intro:       ["Base64 metnini yapıştır veya dosya sürükle. İçerik otomatik algılanır — HTML, düz metin, resim, PDF, <strong>Word (.docx)</strong>, Excel, PowerPoint, ZIP — önizlenir ve <strong>.html</strong>, <strong>.docx</strong>, <strong>.pdf</strong> ya da kaynak dosya olarak kaydedilir.",
+                  "Paste base64 or drop a file. The content is detected automatically — HTML, plain text, images, PDF, <strong>Word (.docx)</strong>, Excel, PowerPoint, ZIP — previewed, and saved as <strong>.html</strong>, <strong>.docx</strong>, <strong>.pdf</strong> or the original file."],
+    modeDecode:  ["Base64 → Dosya (çöz)", "Base64 → File (decode)"],
+    modeEncode:  ["Dosya → Base64 (kodla)", "File → Base64 (encode)"],
+    inputPh:     ["PGgxPk1lcmhhYmE8L2gxPg==\n\nveya:  data:image/png;base64,iVBORw0KGgo...\n\nBuraya .txt / .b64 dosyası da sürükleyebilirsin.",
+                  "PGgxPkhlbGxvPC9oMT4=\n\nor:  data:image/png;base64,iVBORw0KGgo...\n\nYou can also drop a .txt / .b64 file here."],
+    optWrap:     ["Metin/resim için HTML şablonuna sar", "Wrap text/images in an HTML template"],
+    optUrlSafe:  ["URL-safe base64 (-_) kabul et", "Accept URL-safe base64 (-_)"],
+    btnConvert:  ["Dönüştür", "Convert"],
+    btnFile:     ["Dosya seç", "Choose file"],
+    btnPaste:    ["Panodan yapıştır", "Paste from clipboard"],
+    btnSample:   ["Örnek", "Sample"],
+    btnClear:    ["Temizle", "Clear"],
+    dropTitle:   ["Dosyayı buraya sürükle", "Drop a file here"],
+    dropSub:     ["her tür dosya olur — resim, PDF, Word, ZIP…", "any file works — image, PDF, Word, ZIP…"],
+    dropHint:    ["ya da aşağıdaki kutuya metin yaz", "or type text in the box below"],
+    encTextPh:   ["Base64'e çevrilecek metni buraya yaz…", "Type the text to encode as base64…"],
+    optDataUri:  ["data: URI olarak ver", "Output as a data: URI"],
+    optLineWrap: ["76 karakterde satır kır", "Wrap lines at 76 characters"],
+    btnEncode:   ["Base64'e çevir", "Encode to base64"],
+    outTitle:    ["Sonuç", "Result"],
+    outTitleEnc: ["Base64 çıktısı", "Base64 output"],
+    tabPreview:  ["Önizleme", "Preview"],
+    tabCode:     ["HTML kaynağı", "HTML source"],
+    btnSave:     [".html kaydet", "Save .html"],
+    btnWord:     ["Word (.docx) kaydet", "Save Word (.docx)"],
+    btnPdf:      ["PDF olarak kaydet", "Save as PDF"],
+    btnRaw:      ["Kaynak dosya", "Original file"],
+    btnRawExt:   ["Kaynak dosya (.{1})", "Original file (.{1})"],
+    btnCopy:     ["HTML'i kopyala", "Copy HTML"],
+    btnOpen:     ["Yeni sekmede aç", "Open in new tab"],
+    btnB64Copy:  ["Base64'ü kopyala", "Copy base64"],
+    btnB64Save:  [".txt kaydet", "Save .txt"],
+
+    ready:       ["Hazır. (Ctrl+Enter ile de dönüştürebilirsin.)", "Ready. (Ctrl+Enter also converts.)"],
+    encReady:    ["Bir dosya sürükle, seç ya da aşağıya metin yaz.", "Drop or choose a file, or type text below."],
+    cleared:     ["Temizlendi.", "Cleared."],
+    decoding:    ["Çözülüyor…", "Decoding…"],
+    encoding:    ["Kodlanıyor…", "Encoding…"],
+    needInput:   ["Önce base64 metnini gir.", "Enter some base64 first."],
+    needSource:  ["Önce bir dosya seç ya da metin yaz.", "Choose a file or type some text first."],
+
+    errEmpty:    ["Girdi boş.", "Input is empty."],
+    errChars:    ["Girdide base64 olmayan karakterler var.", "The input contains non-base64 characters."],
+    errLength:   ["Base64 uzunluğu geçersiz (eksik ya da fazla karakter var).", "Invalid base64 length (a character is missing or extra)."],
+    errDecode:   ["Base64 çözülemedi: bozuk veri.", "Could not decode base64: corrupt data."],
+    errZipDir:   ["ZIP merkezi dizini bulunamadı.", "ZIP central directory not found."],
+    errZip64:    ["ZIP64 arşivleri desteklenmiyor.", "ZIP64 archives are not supported."],
+    errZipRead:  ["ZIP içeriği okunamadı.", "Could not read the ZIP contents."],
+    errNoPart:   ["Aranan parça arşivde yok.", "The requested part is missing from the archive."],
+    errMethod:   ["Desteklenmeyen ZIP sıkıştırması ({1}).", "Unsupported ZIP compression method ({1})."],
+    errInflate:  ["Bu tarayıcı sıkıştırılmış ZIP açmayı desteklemiyor.", "This browser cannot decompress ZIP archives."],
+    errDocXml:   ["document.xml okunamadı.", "Could not read document.xml."],
+    errDocBody:  ["Word gövdesi bulunamadı.", "Word document body not found."],
+    errFileRead: ["Dosya okunamadı.", "Could not read the file."],
+    errPopup:    ["Açılır pencere engellendi.", "The pop-up was blocked."],
+    errPopupPdf: ["Açılır pencere engellendi — tarayıcıda bu site için izin ver, sonra tekrar dene.",
+                  "The pop-up was blocked — allow pop-ups for this site, then try again."],
+    errClipRead: ["Tarayıcı pano okumayı desteklemiyor; Ctrl+V ile yapıştır.",
+                  "This browser cannot read the clipboard; paste with Ctrl+V."],
+    errClipPerm: ["Pano izni verilmedi; Ctrl+V ile yapıştır.", "Clipboard permission denied; paste with Ctrl+V."],
+    errCopy:     ["Kopyalanamadı — 'HTML kaynağı' sekmesinden seçip kopyala.",
+                  "Copy failed — select the text on the 'HTML source' tab instead."],
+    errCopyB64:  ["Kopyalanamadı — çıktı kutusundan seçip kopyala.", "Copy failed — select the text in the output box instead."],
+    errWord:     ["Word dosyası oluşturulamadı: {1}", "Could not build the Word file: {1}"],
+    errPrint:    ["Yazdırma penceresi açılamadı: {1}", "Could not open the print dialog: {1}"],
+
+    kHtmlDoc:    ["HTML belgesi", "HTML document"],
+    kHtmlFrag:   ["HTML parçası", "HTML fragment"],
+    kDocx:       ["Word belgesi (.docx)", "Word document (.docx)"],
+    kXlsx:       ["Excel çalışma kitabı (.xlsx)", "Excel workbook (.xlsx)"],
+    kPptx:       ["PowerPoint sunumu (.pptx)", "PowerPoint presentation (.pptx)"],
+    kZip:        ["ZIP arşivi", "ZIP archive"],
+    kZipBad:     ["Bozuk ZIP verisi", "Corrupt ZIP data"],
+    kImage:      ["Görsel ({1})", "Image ({1})"],
+    kPdf:        ["PDF", "PDF"],
+    kText:       ["Düz metin", "Plain text"],
+    kBinary:     ["İkili veri", "Binary data"],
+    kBinaryMime: ["İkili veri ({1})", "Binary data ({1})"],
+
+    wTitleImage: ["Görsel", "Image"],
+    wTitleText:  ["Metin", "Text"],
+    wTitleHtml:  ["HTML", "HTML"],
+    wTitleDocx:  ["Word belgesi", "Word document"],
+    wTitleBin:   ["İkili dosya", "Binary file"],
+    wBinBody:    ["<p>Çözülen içerik metin değil{1}, {2} bayt.</p><p><b>Kaynak dosya</b> düğmesiyle diske kaydedebilirsin.</p>",
+                  "<p>The decoded content is not text{1} — {2} bytes.</p><p>Use the <b>Original file</b> button to save it.</p>"],
+    wOffice:     ["<p>{1} tanındı, {2} bayt.</p><p>İçeriği HTML olarak gösterilemiyor. <b>Kaynak dosya (.{3})</b> düğmesiyle kaydedip Office'te açabilirsin.</p>",
+                  "<p>{1} detected, {2} bytes.</p><p>Its contents cannot be shown as HTML. Use <b>Original file (.{3})</b> to save and open it in Office.</p>"],
+    wZipBody:    ["<p>ZIP arşivi — {1} öğe, {2} bayt.</p>", "<p>ZIP archive — {1} entries, {2} bytes.</p>"],
+    wZipMore:    ["<p>… ve {1} öğe daha</p>", "<p>… and {1} more entries</p>"],
+    wZipBad:     ["<p>ZIP imzası var ama arşiv okunamadı, {1} bayt.</p>", "<p>It has a ZIP signature but could not be read — {1} bytes.</p>"],
+    wDocxFail:   ["<p>Word belgesi tanındı ({1} bayt), ancak içeriği okunamadı: {2}</p><p><b>Word (.docx) kaydet</b> ile dosyayı olduğu gibi alabilirsin.</p>",
+                  "<p>Word document detected ({1} bytes), but its contents could not be read: {2}</p><p>Use <b>Save Word (.docx)</b> to download it unchanged.</p>"],
+    docEmpty:    ["(belge boş)", "(document is empty)"],
+    xEmpty:      ["(boş içerik)", "(empty content)"],
+    xImgSrc:     ["[görsel: {1}]", "[image: {1}]"],
+    xImgNone:    ["kaynak yok", "no source"],
+    xImgType:    ["[Word'e gömülemeyen görsel türü: {1}]", "[image type that Word cannot embed: {1}]"],
+    xImgFail:    ["[görsel çözülemedi]", "[image could not be decoded]"],
+
+    okDecoded:   ["Tamam — {1}, {2} bayt çözüldü.", "Done — {1}, {2} bytes decoded."],
+    okNoWord:    [" Word'e çevrilemez; .html ya da kaynak dosya olarak kaydedebilirsin.",
+                  " Cannot be converted to Word; save it as .html or as the original file."],
+    okPreviewNo: [" Önizleme oluşturulamadı: {1}", " Preview could not be built: {1}"],
+    okEncoded:   ["{1} → {2} karakterlik base64 ({3} bayt).", "{1} → {2} characters of base64 ({3} bytes)."],
+    encLabelText:["Metin", "Text"],
+    encName:     ["metin.b64.txt", "text.b64.txt"],
+    okSavedHtml: ["cikti.html indirildi.", "cikti.html downloaded."],
+    okSavedDocx: ["cikti.docx indirildi ({1} KB)", "cikti.docx downloaded ({1} KB)"],
+    okDocxOrig:  [" — kaynak belge birebir korundu.", " — the original document was preserved byte for byte."],
+    okSavedRaw:  ["{1} indirildi ({2} bayt).", "{1} downloaded ({2} bytes)."],
+    okSavedTxt:  ["{1} indirildi.", "{1} downloaded."],
+    okCopied:    ["HTML panoya kopyalandı.", "HTML copied to the clipboard."],
+    okCopiedB64: ["Base64 panoya kopyalandı.", "Base64 copied to the clipboard."],
+    okPrint:     ['Yazdırma penceresi açıldı — "Hedef" olarak "PDF olarak kaydet" seç.',
+                  'The print dialog is open — choose "Save as PDF" as the destination.']
+  };
+
+  var lang = "tr";
+
+  function t(key){
+    var row = S[key];
+    var s = row ? row[lang === "en" ? 1 : 0] : key;
+    for (var i = 1; i < arguments.length; i++) s = s.split("{" + i + "}").join(arguments[i]);
+    return s;
+  }
+
+  function fmt(n){ return n.toLocaleString(lang === "en" ? "en-US" : "tr-TR"); }
+
+  function applyLang(){
+    document.documentElement.lang = lang;
+    document.title = t("appTitle");
+    $("langTr").setAttribute("aria-selected", String(lang === "tr"));
+    $("langEn").setAttribute("aria-selected", String(lang === "en"));
+
+    var set = function(sel, apply){
+      Array.prototype.forEach.call(document.querySelectorAll(sel), apply);
+    };
+    set("[data-i18n]",       function(el){ el.textContent = t(el.getAttribute("data-i18n")); });
+    set("[data-i18n-html]",  function(el){ el.innerHTML   = t(el.getAttribute("data-i18n-html")); });
+    set("[data-i18n-ph]",    function(el){ el.placeholder = t(el.getAttribute("data-i18n-ph")); });
+    set("[data-i18n-title]", function(el){ el.title       = t(el.getAttribute("data-i18n-title")); });
+
+    $("outTitle").textContent = t(mode === "decode" ? "outTitle" : "outTitleEnc");
+    if (result && result.raw) $("btnRaw").textContent = t("btnRawExt", result.raw.ext);
+
+    // Açık sonucu yeni dilde yeniden üret
+    if (mode === "decode" && result) convert();
+    else if (mode === "encode" && encSource) renderEncoded();
+    else setStatus(t(mode === "decode" ? "ready" : "encReady"));
+  }
+
+  function setLang(l){
+    lang = (l === "en") ? "en" : "tr";
+    try { localStorage.setItem("b64lang", lang); } catch(e){}
+    applyLang();
+  }
 
   function setStatus(msg, cls){
     statusEl.textContent = msg;
@@ -172,10 +343,10 @@
     s = s.replace(/\s+/g, "");
     if ($("optUrlSafe").checked) s = s.replace(/-/g, "+").replace(/_/g, "/");
     s = s.replace(/=+$/, "");
-    if (!s) throw new Error("Girdi boş.");
-    if (!/^[A-Za-z0-9+/]*$/.test(s)) throw new Error("Girdide base64 olmayan karakterler var.");
+    if (!s) throw new Error(t("errEmpty"));
+    if (!/^[A-Za-z0-9+/]*$/.test(s)) throw new Error(t("errChars"));
     var pad = s.length % 4;
-    if (pad === 1) throw new Error("Base64 uzunluğu geçersiz (eksik ya da fazla karakter var).");
+    if (pad === 1) throw new Error(t("errLength"));
     if (pad) s += new Array(5 - pad).join("=");
     return { b64: s, mime: mime };
   }
@@ -183,7 +354,7 @@
   function toBytes(b64){
     var bin;
     try { bin = atob(b64); }
-    catch(e){ throw new Error("Base64 çözülemedi: bozuk veri."); }
+    catch(e){ throw new Error(t("errDecode")); }
     var out = new Uint8Array(bin.length);
     for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
@@ -389,16 +560,16 @@
     function imageRun(el){
       var src = el.getAttribute("src") || "";
       var m = src.match(/^data:(image\/[a-z+]+);base64,([\s\S]+)$/i);
-      if (!m) return runXml("[görsel: " + (src.slice(0, 70) || "kaynak yok") + "]", { i: true });
+      if (!m) return runXml(t("xImgSrc", src.slice(0, 70) || t("xImgNone")), { i: true });
 
       var mime = m[1].toLowerCase();
       if (mime === "image/jpg") mime = "image/jpeg";
       if (mime !== "image/png" && mime !== "image/jpeg" && mime !== "image/gif")
-        return runXml("[Word'e gömülemeyen görsel türü: " + mime + "]", { i: true });
+        return runXml(t("xImgType", mime), { i: true });
 
       var bytes;
       try { bytes = toBytes(m[2].replace(/\s+/g, "")); }
-      catch(e){ return runXml("[görsel çözülemedi]", { i: true }); }
+      catch(e){ return runXml(t("xImgFail"), { i: true }); }
 
       var ext = mime === "image/png" ? "png" : (mime === "image/gif" ? "gif" : "jpeg");
       var name = "image" + (++imgSeq) + "." + ext;
@@ -563,7 +734,7 @@
       var dom = new DOMParser().parseFromString(html, "text/html");
       walk(dom.body, 0);
     }
-    if (!blocks.length) blocks.push(para([runXml("(boş içerik)", { i: true })], {}));
+    if (!blocks.length) blocks.push(para([runXml(t("xEmpty"), { i: true })], {}));
 
     /* --- paket --- */
     var documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
@@ -657,10 +828,10 @@
     var eo = -1, stop = Math.max(0, bytes.length - 22 - 65535);
     for (var i = bytes.length - 22; i >= stop; i--)
       if (dv.getUint32(i, true) === 0x06054b50){ eo = i; break; }
-    if (eo < 0) throw new Error("ZIP merkezi dizini bulunamadı.");
+    if (eo < 0) throw new Error(t("errZipDir"));
 
     var count = dv.getUint16(eo + 10, true), off = dv.getUint32(eo + 16, true);
-    if (off === 0xFFFFFFFF) throw new Error("ZIP64 arşivleri desteklenmiyor.");
+    if (off === 0xFFFFFFFF) throw new Error(t("errZip64"));
 
     var out = {}, p = off;
     for (var n = 0; n < count; n++){
@@ -678,16 +849,16 @@
       }
       p += 46 + nameLen + exLen + cmLen;
     }
-    if (!Object.keys(out).length) throw new Error("ZIP içeriği okunamadı.");
+    if (!Object.keys(out).length) throw new Error(t("errZipRead"));
     return out;
   }
 
   function inflate(entry){
-    if (!entry) return Promise.reject(new Error("Aranan parça arşivde yok."));
+    if (!entry) return Promise.reject(new Error(t("errNoPart")));
     if (entry.method === 0) return Promise.resolve(entry.raw);
-    if (entry.method !== 8) return Promise.reject(new Error("Desteklenmeyen ZIP sıkıştırması (" + entry.method + ")."));
+    if (entry.method !== 8) return Promise.reject(new Error(t("errMethod", entry.method)));
     if (typeof DecompressionStream === "undefined")
-      return Promise.reject(new Error("Bu tarayıcı sıkıştırılmış ZIP açmayı desteklemiyor."));
+      return Promise.reject(new Error(t("errInflate")));
     var stream = new Blob([entry.raw]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
     return new Response(stream).arrayBuffer().then(function(b){ return new Uint8Array(b); });
   }
@@ -871,11 +1042,11 @@
 
   function docxToHtml(xmlText, res){
     var doc = new DOMParser().parseFromString(xmlText, "application/xml");
-    if (doc.getElementsByTagName("parsererror").length) throw new Error("document.xml okunamadı.");
+    if (doc.getElementsByTagName("parsererror").length) throw new Error(t("errDocXml"));
     var body = doc.getElementsByTagNameNS(NS.w, "body")[0];
-    if (!body) throw new Error("Word gövdesi bulunamadı.");
+    if (!body) throw new Error(t("errDocBody"));
     var html = docxBlocks(body, res);
-    return html || "<p><i>(belge boş)</i></p>";
+    return html || "<p><i>" + esc(t("docEmpty")) + "</i></p>";
   }
 
   /* ================= ana dönüşüm ================= */
@@ -892,14 +1063,14 @@
   function lockOutputs(){
     result = null;
     ["btnSave", "btnWord", "btnPdf", "btnRaw", "btnCopy", "btnOpen"].forEach(function(id){ $(id).disabled = true; });
-    $("btnRaw").textContent = "Kaynak dosya";
+    $("btnRaw").textContent = t("btnRaw");
   }
 
   function fail(msg){ lockOutputs(); setStatus(msg, "err"); }
 
   function convert(){
-    if (!input.value.trim()){ fail("Önce base64 metnini gir."); return; }
-    setStatus("Çözülüyor…");
+    if (!input.value.trim()){ fail(t("needInput")); return; }
+    setStatus(t("decoding"));
     build().catch(function(e){ fail((e && e.message) ? e.message : String(e)); });
   }
 
@@ -918,11 +1089,11 @@
 
     if (text !== null && (looksLikeHtml(text) || /html/i.test(mime || ""))){
       if (/<!doctype\s+html|<html[\s>]/i.test(text)){
-        html = text; kind = "HTML belgesi";
+        html = text; kind = t("kHtmlDoc");
       } else {
         // Parça HTML: şablona sarılmazsa charset olmadığı için Türkçe karakterler bozulur.
-        html = $("optWrap").checked ? wrap("HTML", text) : text;
-        kind = "HTML parçası";
+        html = $("optWrap").checked ? wrap(t("wTitleHtml"), text) : text;
+        kind = t("kHtmlFrag");
       }
     } else if (isZip(bytes)){
       var zip = null;
@@ -930,7 +1101,7 @@
       var pk = zip ? officeKind(zip) : "bozuk";
 
       if (pk === "docx"){
-        kind = "Word belgesi (.docx)";
+        kind = t("kDocx");
         original = bytes;
         raw = { bytes: bytes, ext: "docx", mime: OFFICE_MIME.docx };
         try {
@@ -938,60 +1109,55 @@
           await readDocxNumbering(zip, res);
           var xmlText = new TextDecoder().decode(await inflate(zip["word/document.xml"]));
           var inner = docxToHtml(xmlText, res);
-          html = $("optWrap").checked ? wrap("Word belgesi", inner) : inner;
+          html = $("optWrap").checked ? wrap(t("wTitleDocx"), inner) : inner;
         } catch(e2){
-          note = " Önizleme oluşturulamadı: " + e2.message;
-          html = wrap(kind, "<p>Word belgesi tanındı (" + bytes.length + " bayt), ancak içeriği okunamadı: "
-               + esc(e2.message) + "</p><p><b>Word (.docx) kaydet</b> ile dosyayı olduğu gibi alabilirsin.</p>");
+          note = t("okPreviewNo", e2.message);
+          html = wrap(kind, t("wDocxFail", fmt(bytes.length), esc(e2.message)));
         }
 
       } else if (pk === "xlsx" || pk === "pptx"){
-        kind = pk === "xlsx" ? "Excel çalışma kitabı (.xlsx)" : "PowerPoint sunumu (.pptx)";
+        kind = t(pk === "xlsx" ? "kXlsx" : "kPptx");
         raw = { bytes: bytes, ext: pk, mime: OFFICE_MIME[pk] };
         word = false; pdfOk = false;
-        html = wrap(kind, "<p>" + esc(kind) + " tanındı, " + bytes.length + " bayt.</p>"
-             + "<p>İçeriği HTML olarak gösterilemiyor. <b>Kaynak dosya (." + pk + ")</b> düğmesiyle kaydedip "
-             + "Office'te açabilirsin.</p>");
+        html = wrap(kind, t("wOffice", esc(kind), fmt(bytes.length), pk));
 
       } else if (zip){
         var names = Object.keys(zip);
-        kind = "ZIP arşivi";
+        kind = t("kZip");
         raw = { bytes: bytes, ext: "zip", mime: "application/zip" };
         word = false; pdfOk = false;
-        html = wrap("ZIP arşivi", "<p>ZIP arşivi — " + names.length + " öğe, " + bytes.length + " bayt.</p><ul>"
+        html = wrap(kind, t("wZipBody", names.length, fmt(bytes.length)) + "<ul>"
              + names.slice(0, 200).map(function(x){ return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>"
-             + (names.length > 200 ? "<p>… ve " + (names.length - 200) + " öğe daha</p>" : ""));
+             + (names.length > 200 ? t("wZipMore", names.length - 200) : ""));
 
       } else {
-        kind = "Bozuk ZIP verisi";
+        kind = t("kZipBad");
         raw = { bytes: bytes, ext: "zip", mime: "application/zip" };
         word = false; pdfOk = false;
-        html = wrap(kind, "<p>ZIP imzası var ama arşiv okunamadı, " + bytes.length + " bayt.</p>");
+        html = wrap(kind, t("wZipBad", fmt(bytes.length)));
       }
 
     } else if (mime && /^image\//.test(mime)){
-      var img = '<img src="data:' + mime + ";base64," + norm.b64 + '" alt="base64 görsel">';
-      html = $("optWrap").checked ? wrap("Görsel", img) : img;
-      kind = "Görsel (" + mime + ")";
+      var img = '<img src="data:' + mime + ";base64," + norm.b64 + '" alt="base64">';
+      html = $("optWrap").checked ? wrap(t("wTitleImage"), img) : img;
+      kind = t("kImage", mime);
       word = /^image\/(png|jpeg|gif)$/.test(mime);
       raw = { bytes: bytes, ext: IMG_EXT[mime] || "img", mime: mime };
     } else if (mime === "application/pdf"){
       var pdf = '<embed src="data:application/pdf;base64,' + norm.b64 + '" type="application/pdf">';
-      html = $("optWrap").checked ? wrap("PDF", pdf) : pdf;
-      kind = "PDF";
+      html = $("optWrap").checked ? wrap(t("kPdf"), pdf) : pdf;
+      kind = t("kPdf");
       word = false; pdfOk = false;   // zaten PDF; "Kaynak dosya (.pdf)" ile kaydedilir
       raw = { bytes: bytes, ext: "pdf", mime: "application/pdf" };
     } else if (text !== null){
-      html = $("optWrap").checked ? wrap("Metin", "<pre>" + esc(text) + "</pre>") : "<pre>" + esc(text) + "</pre>";
-      kind = "Düz metin";
+      html = $("optWrap").checked ? wrap(t("wTitleText"), "<pre>" + esc(text) + "</pre>") : "<pre>" + esc(text) + "</pre>";
+      kind = t("kText");
       plain = text;
     } else {
-      kind = "İkili veri" + (mime ? " (" + mime + ")" : "");
+      kind = mime ? t("kBinaryMime", mime) : t("kBinary");
       word = false; pdfOk = false;
       raw = { bytes: bytes, ext: "bin", mime: mime || "application/octet-stream" };
-      html = wrap("İkili dosya",
-        "<p>Çözülen içerik metin değil" + (mime ? " (" + esc(mime) + ")" : "") + ", " + bytes.length + " bayt.</p>"
-        + "<p><b>Kaynak dosya</b> düğmesiyle diske kaydedebilirsin.</p>");
+      html = wrap(t("wTitleBin"), t("wBinBody", mime ? " (" + esc(mime) + ")" : "", fmt(bytes.length)));
     }
 
     result = { html: html, kind: kind, size: bytes.length, text: plain,
@@ -1006,10 +1172,9 @@
     $("btnWord").disabled = !word;
     $("btnPdf").disabled  = !pdfOk;
     $("btnRaw").disabled  = !raw;
-    $("btnRaw").textContent = raw ? "Kaynak dosya (." + raw.ext + ")" : "Kaynak dosya";
+    $("btnRaw").textContent = raw ? t("btnRawExt", raw.ext) : t("btnRaw");
 
-    setStatus("Tamam — " + kind + ", " + bytes.length.toLocaleString("tr-TR") + " bayt çözüldü."
-      + (word ? "" : " Word'e çevrilemez; .html ya da kaynak dosya olarak kaydedebilirsin.") + note,
+    setStatus(t("okDecoded", kind, fmt(bytes.length)) + (word ? "" : t("okNoWord")) + note,
       note ? "err" : "ok");
   }
 
@@ -1040,9 +1205,8 @@
       $("b64out").classList.remove("hidden");
     }
 
-    $("outTitle").textContent = dec ? "Sonuç" : "Base64 çıktısı";
-    setStatus(dec ? "Hazır. (Ctrl+Enter ile de dönüştürebilirsin.)"
-                  : "Bir dosya sürükle, seç ya da aşağıya metin yaz.");
+    $("outTitle").textContent = t(dec ? "outTitle" : "outTitleEnc");
+    setStatus(t(dec ? "ready" : "encReady"));
   }
 
   function renderEncoded(){
@@ -1057,12 +1221,11 @@
     $("b64out").value = text;
     $("btnB64Copy").disabled = false;
     $("btnB64Save").disabled = false;
-    setStatus(encSource.label + " → " + encSource.b64.length.toLocaleString("tr-TR")
-      + " karakterlik base64 (" + encSource.bytes.length.toLocaleString("tr-TR") + " bayt).", "ok");
+    setStatus(t("okEncoded", encSource.label, fmt(encSource.b64.length), fmt(encSource.bytes.length)), "ok");
   }
 
   function encodeFile(f){
-    setStatus("Kodlanıyor…");
+    setStatus(t("encoding"));
     var r = new FileReader();
     r.onload = function(){
       var bytes = new Uint8Array(r.result);
@@ -1074,16 +1237,16 @@
       };
       renderEncoded();
     };
-    r.onerror = function(){ setStatus("Dosya okunamadı.", "err"); };
+    r.onerror = function(){ setStatus(t("errFileRead"), "err"); };
     r.readAsArrayBuffer(f);
   }
 
-  function encodeText(t){
+  function encodeText(str){
     encSource = {
-      bytes: new TextEncoder().encode(t),
+      bytes: new TextEncoder().encode(str),
       mime: "text/plain;charset=utf-8",
-      name: "metin.b64.txt",
-      label: "Metin"
+      name: t("encName"),
+      label: t("encLabelText")
     };
     renderEncoded();
   }
@@ -1094,7 +1257,7 @@
     $("b64out").value = "";
     $("btnB64Copy").disabled = true;
     $("btnB64Save").disabled = true;
-    setStatus("Temizlendi.");
+    setStatus(t("cleared"));
   }
 
   /* ================= arayüz ================= */
@@ -1121,20 +1284,28 @@
   $("btnClear").onclick = function(){
     input.value = ""; result = null; preview.srcdoc = ""; codeEl.textContent = "";
     ["btnSave", "btnWord", "btnPdf", "btnRaw", "btnCopy", "btnOpen"].forEach(function(id){ $(id).disabled = true; });
-    $("btnRaw").textContent = "Kaynak dosya";
-    setStatus("Temizlendi.");
+    $("btnRaw").textContent = t("btnRaw");
+    setStatus(t("cleared"));
     input.focus();
   };
 
   $("btnSample").onclick = function(){
-    var demo = '<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Ornek</title></head>'
+    var tr = (lang !== "en");
+    var demo = '<!doctype html><html lang="' + lang + '"><head><meta charset="utf-8"><title>'
+      + (tr ? "Ornek" : "Sample") + "</title></head>"
       + '<body style="font-family:system-ui;padding:32px">'
-      + "<h1>Merhaba!</h1><p>Bu sayfa <b>base64</b> icinden cozuldu.</p>"
-      + "<h2>Neler yapabilir</h2>"
-      + "<ul><li>Onizleme calisiyor</li><li><i>.html</i> olarak kaydedebilirsin</li>"
-      + "<li>Word <b>.docx</b> olarak da kaydedebilirsin</li></ul>"
-      + "<table><tr><th>Bicim</th><th>Durum</th></tr>"
-      + "<tr><td>HTML</td><td>hazir</td></tr><tr><td>Word</td><td>hazir</td></tr></table>"
+      + "<h1>" + (tr ? "Merhaba!" : "Hello!") + "</h1>"
+      + "<p>" + (tr ? "Bu sayfa <b>base64</b> icinden cozuldu."
+                    : "This page was decoded from <b>base64</b>.") + "</p>"
+      + "<h2>" + (tr ? "Neler yapabilir" : "What it can do") + "</h2>"
+      + "<ul><li>" + (tr ? "Onizleme calisiyor" : "The preview works") + "</li>"
+      + "<li>" + (tr ? "<i>.html</i> olarak kaydedebilirsin" : "Save it as <i>.html</i>") + "</li>"
+      + "<li>" + (tr ? "Word <b>.docx</b> olarak da kaydedebilirsin" : "Save it as Word <b>.docx</b>") + "</li>"
+      + "<li>" + (tr ? "PDF olarak da kaydedebilirsin" : "Save it as PDF too") + "</li></ul>"
+      + "<table><tr><th>" + (tr ? "Bicim" : "Format") + "</th><th>" + (tr ? "Durum" : "Status") + "</th></tr>"
+      + "<tr><td>HTML</td><td>" + (tr ? "hazir" : "ready") + "</td></tr>"
+      + "<tr><td>Word</td><td>" + (tr ? "hazir" : "ready") + "</td></tr>"
+      + "<tr><td>PDF</td><td>" + (tr ? "hazir" : "ready") + "</td></tr></table>"
       + "</body></html>";
     input.value = btoa(unescape(encodeURIComponent(demo)));
     convert();
@@ -1142,17 +1313,17 @@
 
   $("btnPaste").onclick = function(){
     if (!navigator.clipboard || !navigator.clipboard.readText){
-      setStatus("Tarayıcı pano okumayı desteklemiyor; Ctrl+V ile yapıştır.", "err"); return;
+      setStatus(t("errClipRead"), "err"); return;
     }
     navigator.clipboard.readText()
-      .then(function(t){ input.value = t; convert(); })
-      .catch(function(){ setStatus("Pano izni verilmedi; Ctrl+V ile yapıştır.", "err"); });
+      .then(function(txt){ input.value = txt; convert(); })
+      .catch(function(){ setStatus(t("errClipPerm"), "err"); });
   };
 
   function readFile(f){
     var r = new FileReader();
     r.onload  = function(){ input.value = String(r.result); convert(); };
-    r.onerror = function(){ setStatus("Dosya okunamadı.", "err"); };
+    r.onerror = function(){ setStatus(t("errFileRead"), "err"); };
     r.readAsText(f);
   }
 
@@ -1186,10 +1357,10 @@
   };
 
   $("btnEncode").onclick = function(){
-    var t = $("encText").value;
-    if (t) { encodeText(t); return; }
+    var txt = $("encText").value;
+    if (txt) { encodeText(txt); return; }
     if (encSource) { renderEncoded(); return; }
-    setStatus("Önce bir dosya seç ya da metin yaz.", "err");
+    setStatus(t("needSource"), "err");
   };
 
   $("btnEncClear").onclick = clearEncode;
@@ -1207,19 +1378,19 @@
 
   $("btnB64Copy").onclick = function(){
     navigator.clipboard.writeText($("b64out").value)
-      .then(function(){ setStatus("Base64 panoya kopyalandı.", "ok"); })
-      .catch(function(){ setStatus("Kopyalanamadı — çıktı kutusundan seçip kopyala.", "err"); });
+      .then(function(){ setStatus(t("okCopiedB64"), "ok"); })
+      .catch(function(){ setStatus(t("errCopyB64"), "err"); });
   };
 
   $("btnB64Save").onclick = function(){
     var name = encSource ? encSource.name : "base64.txt";
     download(new Blob([$("b64out").value], { type: "text/plain;charset=utf-8" }), name);
-    setStatus(name + " indirildi.", "ok");
+    setStatus(t("okSavedTxt", name), "ok");
   };
 
   $("btnSave").onclick = function(){
     download(new Blob([result.html], { type: "text/html;charset=utf-8" }), "cikti.html");
-    setStatus("cikti.html indirildi.", "ok");
+    setStatus(t("okSavedHtml"), "ok");
   };
 
   $("btnWord").onclick = function(){
@@ -1229,23 +1400,23 @@
         ? new Blob([result.original], { type: OFFICE_MIME.docx })
         : htmlToDocx(result.html, result.text);
       download(blob, "cikti.docx");
-      setStatus("cikti.docx indirildi (" + Math.round(blob.size / 1024) + " KB)"
-        + (result.original ? " — kaynak belge birebir korundu." : "."), "ok");
+      setStatus(t("okSavedDocx", Math.round(blob.size / 1024))
+        + (result.original ? t("okDocxOrig") : "."), "ok");
     } catch(e){
-      setStatus("Word dosyası oluşturulamadı: " + e.message, "err");
+      setStatus(t("errWord", e.message), "err");
     }
   };
 
   $("btnRaw").onclick = function(){
     var name = "cikti." + result.raw.ext;
     download(new Blob([result.raw.bytes], { type: result.raw.mime }), name);
-    setStatus(name + " indirildi (" + result.raw.bytes.length.toLocaleString("tr-TR") + " bayt).", "ok");
+    setStatus(t("okSavedRaw", name, fmt(result.raw.bytes.length)), "ok");
   };
 
   $("btnCopy").onclick = function(){
     navigator.clipboard.writeText(result.html)
-      .then(function(){ setStatus("HTML panoya kopyalandı.", "ok"); })
-      .catch(function(){ setStatus("Kopyalanamadı — 'HTML kaynağı' sekmesinden seçip kopyala.", "err"); });
+      .then(function(){ setStatus(t("okCopied"), "ok"); })
+      .catch(function(){ setStatus(t("errCopy"), "err"); });
   };
 
   /* Yeni sekme aynı adreste açılır; CSP ile betikleri kapatırız. Meta en başa konur
@@ -1258,7 +1429,7 @@
 
   $("btnOpen").onclick = function(){
     var w = window.open("", "_blank");
-    if (!w){ setStatus("Açılır pencere engellendi.", "err"); return; }
+    if (!w){ setStatus(t("errPopup"), "err"); return; }
     w.document.open(); w.document.write(withoutScripts(result.html)); w.document.close();
   };
 
@@ -1266,10 +1437,7 @@
      "PDF olarak kaydet" seçer. Türkçe karakterler, tablolar ve görseller olduğu gibi çıkar. */
   $("btnPdf").onclick = function(){
     var w = window.open("", "_blank");
-    if (!w){
-      setStatus("Açılır pencere engellendi — tarayıcıda bu site için izin ver, sonra tekrar dene.", "err");
-      return;
-    }
+    if (!w){ setStatus(t("errPopupPdf"), "err"); return; }
     w.document.open(); w.document.write(withoutScripts(result.html)); w.document.close();
 
     var done = false;
@@ -1277,19 +1445,28 @@
       if (done) return;
       done = true;
       try { w.focus(); w.print(); }
-      catch(e){ setStatus("Yazdırma penceresi açılamadı: " + e.message, "err"); }
+      catch(e){ setStatus(t("errPrint", e.message), "err"); }
     }
     // Görseller yüklendikten sonra yazdır; load olayı gelmezse yine de dene.
     if (w.document.readyState === "complete") setTimeout(print, 200);
     else w.addEventListener("load", function(){ setTimeout(print, 200); });
     setTimeout(print, 3000);
 
-    setStatus('Yazdırma penceresi açıldı — "Hedef" olarak "PDF olarak kaydet" seç.', "ok");
+    setStatus(t("okPrint"), "ok");
   };
 
   input.addEventListener("keydown", function(e){
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter"){ e.preventDefault(); convert(); }
   });
+
+  $("langTr").onclick = function(){ setLang("tr"); };
+  $("langEn").onclick = function(){ setLang("en"); };
+
+  /* Kayıtlı tercih varsa onu, yoksa tarayıcı dilini kullan */
+  var saved = null;
+  try { saved = localStorage.getItem("b64lang"); } catch(e){}
+  lang = saved || (/^tr\b/i.test(navigator.language || "") ? "tr" : "en");
+  applyLang();
 
   input.focus();
 })();
