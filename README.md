@@ -21,13 +21,20 @@ içeriği olduğu gibi, betikleriyle birlikte saklar.
 
 ## Kullanım
 
-- **Web:** GitLab Pages adresinden aç.
+- **Web:** GitHub Pages (veya GitLab Pages) adresinden aç.
 - **Yerel:** `index.html` dosyasına çift tıkla — kurulum veya internet gerekmez.
 
 ## Yayınlama
 
-`.gitlab-ci.yml` içindeki `pages` işi, varsayılan dala yapılan her push'ta `index.html`'i GitLab Pages'e yayınlar.
-Adres, projenin **Deploy → Pages** sayfasında görünür.
+Derleme adımı yoktur; `index.html` doğrudan yayınlanır.
+
+**GitHub Pages:** depoda **Settings → Pages → Build and deployment** altında
+*Source: Deploy from a branch*, *Branch: `main` / `(root)`* seç. Adres aynı sayfada görünür
+(`https://<kullanıcı>.github.io/<depo>/`). Ücretsiz hesaplarda Pages yalnızca herkese açık depolarda çalışır.
+`.nojekyll` dosyası, GitHub'ın siteyi Jekyll ile işlemesini kapatır.
+
+**GitLab Pages:** `.gitlab-ci.yml` içindeki `pages` işi, varsayılan dala yapılan her push'ta
+`index.html`'i yayınlar. Adres, projenin **Deploy → Pages** sayfasında görünür.
 
 ## Teknik notlar
 
