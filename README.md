@@ -1,4 +1,4 @@
-# Base64 → HTML / Word Dönüştürücü
+# Base64 → HTML / Word / PDF Dönüştürücü
 
 Base64 verisini çözüp içeriğini otomatik tanıyan, önizleyen ve dosya olarak kaydeden tek sayfalık web uygulaması.
 
