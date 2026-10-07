@@ -276,6 +276,7 @@
     noteHow:     ["Tespit", "Detected by"],
     noteExt:     ["Uzantı", "Extension"],
     mimeNone:    ["belirtilmemiş", "not specified"],
+    mimeInferred:["{1} (çıkarıldı, imzadan değil)", "{1} (inferred, not from a signature)"],
     unitBytes:   ["bayt", "bytes"],
     detDataUri:  ["data: URI önekinden", "the data: URI prefix"],
     detSign:     ["dosya imzasından (ilk baytlar)", "the file signature (first bytes)"],
@@ -1119,12 +1120,14 @@
     var text = binary ? null : decodeText(bytes);
 
     var html, kind, plain = null, word = true, raw = null, original = null, note = "";
-    var pdfOk = true;   // yazdırarak PDF'e aktarmak anlamlı mı
+    var pdfOk = true;        // yazdırarak PDF'e aktarmak anlamlı mı
+    var guessedMime = null;  // imzası olmayan türlerde çıkarım sonucu
 
     if (text !== null && (looksLikeHtml(text) || /html/i.test(mime || ""))){
       if (/<!doctype\s+html|<html[\s>]/i.test(text)){
-        html = text; kind = t("kHtmlDoc");
+        html = text; kind = t("kHtmlDoc"); guessedMime = "text/html";
       } else {
+        guessedMime = "text/html";
         // Parça HTML: şablona sarılmazsa charset olmadığı için Türkçe karakterler bozulur.
         html = $("optWrap").checked ? wrap(t("wTitleHtml"), text) : text;
         kind = t("kHtmlFrag");
@@ -1189,9 +1192,11 @@
       html = $("optWrap").checked ? wrap(t("wTitleText"), "<pre>" + esc(text) + "</pre>") : "<pre>" + esc(text) + "</pre>";
       kind = t("kText");
       plain = text;
+      guessedMime = "text/plain;charset=utf-8";
     } else {
       kind = mime ? t("kBinaryMime", mime) : t("kBinary");
       word = false; pdfOk = false;
+      guessedMime = "application/octet-stream";
       raw = { bytes: bytes, ext: "bin", mime: mime || "application/octet-stream" };
       html = wrap(t("wTitleBin"), t("wBinBody", mime ? " (" + esc(mime) + ")" : "", fmt(bytes.length)));
     }
@@ -1213,7 +1218,8 @@
     $("typeNote").innerHTML =
         "<b>" + esc(t("noteType")) + ":</b> " + esc(kind)
       + '<br><span class="det">'
-      + esc(t("noteMime")) + ": " + esc(mime || t("mimeNone"))
+      + esc(t("noteMime")) + ": "
+      + esc(mime ? mime : (guessedMime ? t("mimeInferred", guessedMime) : t("mimeNone")))
       + " &nbsp;·&nbsp; " + esc(t("noteSize")) + ": " + esc(fmtSize(bytes.length))
       + (raw ? " &nbsp;·&nbsp; " + esc(t("noteExt")) + ": ." + esc(raw.ext) : "")
       + " &nbsp;·&nbsp; " + esc(t("noteHow")) + ": " + esc(t(how))
