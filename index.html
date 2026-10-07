@@ -65,6 +65,10 @@
   #b64out{position:absolute;inset:0;width:100%;height:100%;border:0;outline:0;resize:none;padding:14px;
           background:var(--code);color:var(--text);
           font:12.5px/1.5 Consolas,monospace;white-space:pre-wrap;word-break:break-all}
+  .note{display:none;margin:10px 14px 0;padding:9px 12px;border-radius:8px;
+        background:var(--code);border-left:3px solid var(--accent);font-size:12.5px;line-height:1.7}
+  .note.show{display:block}
+  .note .det{color:var(--muted)}
   .view{flex:1;position:relative;background:var(--code)}
   iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
   pre.out{position:absolute;inset:0;margin:0;overflow:auto;padding:14px;
@@ -133,6 +137,7 @@
       <button id="tabPreview" aria-selected="true" data-i18n="tabPreview">Önizleme</button>
       <button id="tabCode" aria-selected="false" data-i18n="tabCode">HTML kaynağı</button>
     </div>
+    <div class="note" id="typeNote"></div>
     <div class="view">
       <iframe id="preview" data-i18n-title="tabPreview" title="Önizleme" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>
       <pre class="out hidden" id="code"></pre>
@@ -265,6 +270,18 @@
     xImgType:    ["[Word'e gömülemeyen görsel türü: {1}]", "[image type that Word cannot embed: {1}]"],
     xImgFail:    ["[görsel çözülemedi]", "[image could not be decoded]"],
 
+    noteType:    ["Algılanan tür", "Detected type"],
+    noteMime:    ["MIME", "MIME"],
+    noteSize:    ["Boyut", "Size"],
+    noteHow:     ["Tespit", "Detected by"],
+    noteExt:     ["Uzantı", "Extension"],
+    mimeNone:    ["belirtilmemiş", "not specified"],
+    unitBytes:   ["bayt", "bytes"],
+    detDataUri:  ["data: URI önekinden", "the data: URI prefix"],
+    detSign:     ["dosya imzasından (ilk baytlar)", "the file signature (first bytes)"],
+    detArchive:  ["arşivin içine bakılarak", "the archive contents"],
+    detContent:  ["içerik çözümlemesinden", "content analysis"],
+
     okDecoded:   ["Tamam — {1}, {2} bayt çözüldü.", "Done — {1}, {2} bytes decoded."],
     okNoWord:    [" Word'e çevrilemez; .html ya da kaynak dosya olarak kaydedebilirsin.",
                   " Cannot be converted to Word; save it as .html or as the original file."],
@@ -293,6 +310,17 @@
   }
 
   function fmt(n){ return n.toLocaleString(lang === "en" ? "en-US" : "tr-TR"); }
+
+  function fmtSize(n){
+    var s = fmt(n) + " " + t("unitBytes");
+    if (n >= 1024){
+      var mb = n >= 1048576;
+      var v = mb ? n / 1048576 : n / 1024;
+      s += " (" + v.toLocaleString(lang === "en" ? "en-US" : "tr-TR", { maximumFractionDigits: 1 })
+         + " " + (mb ? "MB" : "KB") + ")";
+    }
+    return s;
+  }
 
   function applyLang(){
     document.documentElement.lang = lang;
@@ -1065,6 +1093,7 @@
     result = null;
     ["btnSave", "btnWord", "btnPdf", "btnRaw", "btnCopy", "btnOpen"].forEach(function(id){ $(id).disabled = true; });
     $("btnRaw").textContent = t("btnRaw");
+    $("typeNote").classList.remove("show");
   }
 
   function fail(msg){ lockOutputs(); setStatus(msg, "err"); }
@@ -1080,7 +1109,11 @@
     try { norm = normalize(input.value); bytes = toBytes(norm.b64); }
     catch(e){ fail(e.message); return; }
 
-    var mime = norm.mime || sniff(bytes);
+    // Türün nereden anlaşıldığını not için saklarız: data: öneki > imza > içerik
+    var sniffed = norm.mime ? null : sniff(bytes);
+    var mime = norm.mime || sniffed;
+    var how = norm.mime ? "detDataUri" : (sniffed ? "detSign" : "detContent");
+
     var binary = mime && /^(image|audio|video|application)\//.test(mime)
                  && !/(html|json|xml|javascript|svg)/i.test(mime);
     var text = binary ? null : decodeText(bytes);
@@ -1100,6 +1133,8 @@
       var zip = null;
       try { zip = readZip(bytes); } catch(e){ note = " " + e.message; }
       var pk = zip ? officeKind(zip) : "bozuk";
+      if (zip) how = "detArchive";                       // ZIP imzası yetmez, içine bakarız
+      if (pk !== "zip" && pk !== "bozuk") mime = OFFICE_MIME[pk];
 
       if (pk === "docx"){
         kind = t("kDocx");
@@ -1175,6 +1210,16 @@
     $("btnRaw").disabled  = !raw;
     $("btnRaw").textContent = raw ? t("btnRawExt", raw.ext) : t("btnRaw");
 
+    $("typeNote").innerHTML =
+        "<b>" + esc(t("noteType")) + ":</b> " + esc(kind)
+      + '<br><span class="det">'
+      + esc(t("noteMime")) + ": " + esc(mime || t("mimeNone"))
+      + " &nbsp;·&nbsp; " + esc(t("noteSize")) + ": " + esc(fmtSize(bytes.length))
+      + (raw ? " &nbsp;·&nbsp; " + esc(t("noteExt")) + ": ." + esc(raw.ext) : "")
+      + " &nbsp;·&nbsp; " + esc(t("noteHow")) + ": " + esc(t(how))
+      + "</span>";
+    $("typeNote").classList.add("show");
+
     setStatus(t("okDecoded", kind, fmt(bytes.length)) + (word ? "" : t("okNoWord")) + note,
       note ? "err" : "ok");
   }
@@ -1206,6 +1251,7 @@
       $("b64out").classList.remove("hidden");
     }
 
+    $("typeNote").classList.toggle("show", dec && !!result);
     $("outTitle").textContent = t(dec ? "outTitle" : "outTitleEnc");
     setStatus(t(dec ? "ready" : "encReady"));
   }
@@ -1286,6 +1332,7 @@
     input.value = ""; result = null; preview.srcdoc = ""; codeEl.textContent = "";
     ["btnSave", "btnWord", "btnPdf", "btnRaw", "btnCopy", "btnOpen"].forEach(function(id){ $(id).disabled = true; });
     $("btnRaw").textContent = t("btnRaw");
+    $("typeNote").classList.remove("show");
     setStatus(t("cleared"));
     input.focus();
   };
