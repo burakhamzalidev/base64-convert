@@ -309,7 +309,8 @@
     set("[data-i18n-title]", function(el){ el.title       = t(el.getAttribute("data-i18n-title")); });
 
     $("outTitle").textContent = t(mode === "decode" ? "outTitle" : "outTitleEnc");
-    if (result && result.raw) $("btnRaw").textContent = t("btnRawExt", result.raw.ext);
+    // Metni koda göre değiştiği için data-i18n ile taranmıyor; burada elle çevrilmeli.
+    $("btnRaw").textContent = (result && result.raw) ? t("btnRawExt", result.raw.ext) : t("btnRaw");
 
     // Açık sonucu yeni dilde yeniden üret
     if (mode === "decode" && result) convert();
