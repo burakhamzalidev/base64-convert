@@ -8,6 +8,7 @@ Base64 verisini çözüp içeriğini otomatik tanıyan, önizleyen ve dosya olar
 - **HTML çıktısı:** önizleme, kaynak görünümü, `.html` olarak kaydetme
 - **Word çıktısı:** HTML veya metin içeriğinden gerçek `.docx` üretir (başlık, liste, tablo, bağlantı, gömülü görsel)
 - **Word girdisi:** base64 zaten bir `.docx` ise içeriği önizlenir ve dosya birebir kaydedilir
+- **PDF çıktısı:** içeriği tarayıcının yazdırma penceresinden PDF olarak kaydeder
 - **Kaynak dosya:** çözülen veriyi doğru uzantıyla (`.pdf`, `.png`, `.xlsx` …) kaydeder
 - Girdi toleransı: `data:` öneki, satır sonları, URL-safe base64, eksik `=` dolgusu
 

@@ -98,6 +98,7 @@
     <div class="bar">
       <button class="primary" id="btnSave" disabled>.html kaydet</button>
       <button class="word" id="btnWord" disabled>Word (.docx) kaydet</button>
+      <button id="btnPdf" disabled>PDF olarak kaydet</button>
       <button id="btnRaw" disabled>Kaynak dosya</button>
       <button id="btnCopy" disabled>HTML'i kopyala</button>
       <button id="btnOpen" disabled>Yeni sekmede aç</button>
@@ -851,7 +852,7 @@
   /* Başarısız dönüşümden sonra kaydet düğmeleri eski içeriğe ait kalmasın */
   function lockOutputs(){
     result = null;
-    ["btnSave", "btnWord", "btnRaw", "btnCopy", "btnOpen"].forEach(function(id){ $(id).disabled = true; });
+    ["btnSave", "btnWord", "btnPdf", "btnRaw", "btnCopy", "btnOpen"].forEach(function(id){ $(id).disabled = true; });
     $("btnRaw").textContent = "Kaynak dosya";
   }
 
@@ -874,6 +875,7 @@
     var text = binary ? null : decodeText(bytes);
 
     var html, kind, plain = null, word = true, raw = null, original = null, note = "";
+    var pdfOk = true;   // yazdırarak PDF'e aktarmak anlamlı mı
 
     if (text !== null && (looksLikeHtml(text) || /html/i.test(mime || ""))){
       if (/<!doctype\s+html|<html[\s>]/i.test(text)){
@@ -907,7 +909,7 @@
       } else if (pk === "xlsx" || pk === "pptx"){
         kind = pk === "xlsx" ? "Excel çalışma kitabı (.xlsx)" : "PowerPoint sunumu (.pptx)";
         raw = { bytes: bytes, ext: pk, mime: OFFICE_MIME[pk] };
-        word = false;
+        word = false; pdfOk = false;
         html = wrap(kind, "<p>" + esc(kind) + " tanındı, " + bytes.length + " bayt.</p>"
              + "<p>İçeriği HTML olarak gösterilemiyor. <b>Kaynak dosya (." + pk + ")</b> düğmesiyle kaydedip "
              + "Office'te açabilirsin.</p>");
@@ -916,7 +918,7 @@
         var names = Object.keys(zip);
         kind = "ZIP arşivi";
         raw = { bytes: bytes, ext: "zip", mime: "application/zip" };
-        word = false;
+        word = false; pdfOk = false;
         html = wrap("ZIP arşivi", "<p>ZIP arşivi — " + names.length + " öğe, " + bytes.length + " bayt.</p><ul>"
              + names.slice(0, 200).map(function(x){ return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>"
              + (names.length > 200 ? "<p>… ve " + (names.length - 200) + " öğe daha</p>" : ""));
@@ -924,7 +926,7 @@
       } else {
         kind = "Bozuk ZIP verisi";
         raw = { bytes: bytes, ext: "zip", mime: "application/zip" };
-        word = false;
+        word = false; pdfOk = false;
         html = wrap(kind, "<p>ZIP imzası var ama arşiv okunamadı, " + bytes.length + " bayt.</p>");
       }
 
@@ -938,7 +940,7 @@
       var pdf = '<embed src="data:application/pdf;base64,' + norm.b64 + '" type="application/pdf">';
       html = $("optWrap").checked ? wrap("PDF", pdf) : pdf;
       kind = "PDF";
-      word = false;
+      word = false; pdfOk = false;   // zaten PDF; "Kaynak dosya (.pdf)" ile kaydedilir
       raw = { bytes: bytes, ext: "pdf", mime: "application/pdf" };
     } else if (text !== null){
       html = $("optWrap").checked ? wrap("Metin", "<pre>" + esc(text) + "</pre>") : "<pre>" + esc(text) + "</pre>";
@@ -946,7 +948,7 @@
       plain = text;
     } else {
       kind = "İkili veri" + (mime ? " (" + mime + ")" : "");
-      word = false;
+      word = false; pdfOk = false;
       raw = { bytes: bytes, ext: "bin", mime: mime || "application/octet-stream" };
       html = wrap("İkili dosya",
         "<p>Çözülen içerik metin değil" + (mime ? " (" + esc(mime) + ")" : "") + ", " + bytes.length + " bayt.</p>"
@@ -954,7 +956,7 @@
     }
 
     result = { html: html, kind: kind, size: bytes.length, text: plain,
-               word: word, raw: raw, original: original };
+               word: word, raw: raw, original: original, pdfOk: pdfOk };
     // Çözülen içerikteki betikler uygulamanın adresinde çalışmasın. Tek istisna, PDF görüntüleyici
     // eklentisine ihtiyaç duyan ve tamamen bizim ürettiğimiz PDF sarmalayıcısı.
     if (kind === "PDF") preview.removeAttribute("sandbox");
@@ -963,6 +965,7 @@
     codeEl.textContent = html;
     ["btnSave", "btnCopy", "btnOpen"].forEach(function(id){ $(id).disabled = false; });
     $("btnWord").disabled = !word;
+    $("btnPdf").disabled  = !pdfOk;
     $("btnRaw").disabled  = !raw;
     $("btnRaw").textContent = raw ? "Kaynak dosya (." + raw.ext + ")" : "Kaynak dosya";
 
@@ -994,7 +997,7 @@
 
   $("btnClear").onclick = function(){
     input.value = ""; result = null; preview.srcdoc = ""; codeEl.textContent = "";
-    ["btnSave", "btnWord", "btnRaw", "btnCopy", "btnOpen"].forEach(function(id){ $(id).disabled = true; });
+    ["btnSave", "btnWord", "btnPdf", "btnRaw", "btnCopy", "btnOpen"].forEach(function(id){ $(id).disabled = true; });
     $("btnRaw").textContent = "Kaynak dosya";
     setStatus("Temizlendi.");
     input.focus();
@@ -1091,6 +1094,31 @@
     var w = window.open("", "_blank");
     if (!w){ setStatus("Açılır pencere engellendi.", "err"); return; }
     w.document.open(); w.document.write(withoutScripts(result.html)); w.document.close();
+  };
+
+  /* PDF üretmek için tarayıcının yazdırma penceresini kullanırız: kullanıcı hedef olarak
+     "PDF olarak kaydet" seçer. Türkçe karakterler, tablolar ve görseller olduğu gibi çıkar. */
+  $("btnPdf").onclick = function(){
+    var w = window.open("", "_blank");
+    if (!w){
+      setStatus("Açılır pencere engellendi — tarayıcıda bu site için izin ver, sonra tekrar dene.", "err");
+      return;
+    }
+    w.document.open(); w.document.write(withoutScripts(result.html)); w.document.close();
+
+    var done = false;
+    function print(){
+      if (done) return;
+      done = true;
+      try { w.focus(); w.print(); }
+      catch(e){ setStatus("Yazdırma penceresi açılamadı: " + e.message, "err"); }
+    }
+    // Görseller yüklendikten sonra yazdır; load olayı gelmezse yine de dene.
+    if (w.document.readyState === "complete") setTimeout(print, 200);
+    else w.addEventListener("load", function(){ setTimeout(print, 200); });
+    setTimeout(print, 3000);
+
+    setStatus('Yazdırma penceresi açıldı — "Hedef" olarak "PDF olarak kaydet" seç.', "ok");
   };
 
   input.addEventListener("keydown", function(e){
